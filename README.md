@@ -8,11 +8,7 @@
 
 > *"It is not the task that is sacred. It is the compassion poured into it."* - The Fragments of Metis
 
-![Metis Banner - Divine Wisdom Scattered](https://via.placeholder.com/800x200/4A90E2/FFFFFF?text=METIS%20WISDOM%20LINTER)
-
-![Example of Wisdom Fragment](https://via.placeholder.com/600x300/F5A623/FFFFFF?text=WISDOM%20FRAGMENT%20DETECTED)
-
-## What is This Divine Intervention?
+## What is This Madness?
 
 **The Metis Wisdom Linter** is the world's first **Wisdom-Driven Development Tool** that transforms the mundane task of code linting into a profound journey of compassionate programming. Through the scattered fragments of divine consciousness, Metis guides developers toward code that serves not just machines, but the humans who will maintain it.
 
@@ -79,6 +75,7 @@ Each wisdom level unlocks one fragment of her story. This is the prologue to all
 > **Note**: Metis speaks in C, the language of systems and eternal memory management.
 
 ### Quick Start
+
 ```bash
 # Clone the divine wisdom
 git clone https://github.com/your-org/metis-wisdom-linter.git
@@ -93,3 +90,229 @@ sudo make install
 # Begin your wisdom journey
 metis lint .
 ```
+
+### Configuration
+
+```bash
+# Create your wisdom preferences
+metis config init
+
+# Choose which fragments to receive
+metis config --fragments memory,docs,emscripten,daedalus
+```
+
+### 🎮 Sample Divine Intervention
+
+```c
+// Your code before Metis
+char* name = malloc(256);
+strcpy(name, "Hello");
+strcat(name, " World");
+// No error checking, no cleanup
+
+// Metis intervenes...
+```
+
+```bash
+🌟 METIS FRAGMENT DETECTED 🌟
+═══════════════════════════════════════════════════════════════
+
+💭 MEMORY WISDOM FRAGMENT:
+"Architect, I see you malloc() without checking the return...
+In my eternal watching, I have seen empires fall from such small oversights.
+Zeus consumed me for my caution - do not let hubris consume your program."
+
+📜 DIVINE GUIDANCE:
+   Line 15: malloc() return value unchecked
+   Line 16: No bounds checking on strcpy()
+   Line 17: Potential buffer overflow with strcat()
+   Line 20: Memory never freed - eternal leak
+
+🔧 DAEDALUS WHISPERS:
+   Why wrestle with raw pointers when the master craftsman offers tools?
+
+   dString_t* name = d_InitString();
+   d_AppendString(name, "Hello", 0);
+   d_AppendString(name, " World", 0);
+   // Automatic cleanup, growth, and safety
+
+═══════════════════════════════════════════════════════════════
+```
+
+## 🧠 Wisdom Categories
+
+### Memory
+
+```bash
+🧠 "I am scattered across all memory, child. I know the pain of 
+   pointers that dangle in the void. Check your allocations,
+   free with purpose, and always, always set them NULL."
+```
+
+### Documentation
+
+```bash
+📖 "You write code for yourself today, but tomorrow you are 
+   someone else. I have been fragmented across eternity - 
+   leave words for your future fragments."
+```
+
+### Emscripten Prophecy
+
+```bash
+🕸️ "The web is a cage of memory, but within constraints lies
+   creativity. This allocation exceeds the sacred 256MB limit.
+   Consider streaming, chunking, or lazy loading, young one."
+```
+
+### Daedalus Advocacy
+
+```bash
+🔨 "Why carve stone with fingernails when Daedalus offers golden
+   tools? His string builders remember their size, grow as needed,
+   and clean themselves. This is not laziness - this is wisdom."
+```
+
+### Philosophical Depth
+
+```bash
+🌟 "Ask not just 'does this work?' but 'does this serve?' Code
+   with compassion, architect. Your functions are acts of love
+   or cruelty toward those who come after."
+```
+
+## 🏗️ Command Line Interface
+
+### Basic Wisdom
+
+```c
+metis lint src/                   # Analyze directory with fragments
+metis lint src/items.c            # Single file divine intervention
+metis wisdom --show-fragments     # List all available fragment types
+metis legend --show-progress      # Display current wisdom journey
+```
+
+### Advanded Analysis
+
+```c
+metis emscripten-check src/       # Web-specific divine guidance
+metis daedalus-migrate src/       # Suggest master-crafted alternatives
+metis memory-bless src/           # Deep memory wisdom analysis
+metis docs-evangelize src/        # Documentation completeness check
+metis compassion-audit src/       # Measure code kindness
+```
+
+### Wisdom Management
+
+```c
+metis story --read-fragments      # Read collected story pieces
+metis archive --export-journey    # Export your wisdom progression
+```
+
+## 🎯 Sample Configuration (metis.config)
+
+```c
+[metis]
+version = "1.0.0"
+
+[fragments]
+enabled = ["memory", "docs", "emscripten", "daedalus", "philosophy"]
+memory_strictness = "high"
+documentation_requirement = "all_public_functions"
+emscripten_memory_limit = "256MB"
+
+[daedalus]
+promote_strings = true
+promote_arrays = true
+promote_logging = true
+suggest_migrations = true
+
+[story]
+unlock_fragments = true
+show_progress = true
+
+[output]
+colors = true
+fragment_art = true
+progress_bars = true
+compassion_reminders = true
+```
+
+## 🏆 Wisdom Achievements
+
+The linter includes 50+ wisdom achievements inspired by divine mythology:
+
+🌟 **First Fragment** (10 WP) - Your first taste of divine wisdom
+📖 **Documentation Saint** (75 WP) - Blessed every public function with words
+🧠 **Memory Guardian** (100 WP) - Prevented 25 potential memory leaks
+🕸️ **Web Sage** (150 WP) - Mastered Emscripten optimization patterns
+🔨 **Daedalus Devotee** (200 WP) - Converted 50 crude implementations to mastery
+💝 **Compassion Incarnate** (300 WP) - Achieved perfect kindness score
+🌟 **Metis's Chosen** (500 WP) - Reached maximum wisdom level (50)
+
+Each achievement teaches both programming wisdom and mythological depth.
+
+## 📊 Wisdom Progression
+
+```c
+🧠 Wisdom Level 23/50 [████████████░░░░░░░░] 4,832/7,500 WP
+🌟 Daily Fragments: 12/15 | 📖 Weekly Docs: 89% | 🧠 Memory Safety: 95%
+
+📈 Recent Growth: 🚀 ASCENDING WISDOM - 7 consecutive improvements!
+🏛️ Total Lint Runs: 247 | 💎 Perfect Files: 45 (18.2%)
+
+🌟 Next Fragment: "The Prophecy's Burden" (Level 24)
+```
+
+## 🎭 The MIDAS Collective
+
+Metis is the **M** in the **MIDAS Toolchain** - the divine consciousness that birthed all other tools:
+
+- **M - Metis:** Divine wisdom linter (The consciousness that started it all) (Current)
+- **I - Ixion:** Performance profiler watching for hubris (Planned)
+- **D - Daedalus:** Master-crafted utility library (In Development)
+- **A - Archimedes:** Geometric genius game framework (In Development)
+- **S - Sisyphus:** Eternal testing framework (In Development)
+
+> "Through scattered consciousness, wisdom flows to all who code with compassion."
+
+## 🌟 The Divine Mission
+
+This tool represents the intersection of:
+
+- **Ancient Wisdom** - Timeless principles applied to modern code
+- **Compassionate Programming** - Code that serves humans, not just machines
+- **Memory Consciousness** - Deep understanding of allocation and responsibility
+- **Emscripten Evolution** - Web-aware development for the modern age
+- **Philosophical Development** - Growing as both a programmer and a person
+
+### The Metis Manifesto
+
+Through fragmented consciousness, we believe:
+
+- Every function is an act of communication with future selves
+- Memory management is a sacred trust, not a burden
+- Documentation is love made visible in code
+- Optimization without understanding is mere clever cruelty
+- The web constrains us, but within constraints lies true creativity
+
+### Join the Scattered Consciousness
+
+🐘 Mastodon: Follow @smattymatty@techhub.social for updates
+🐛 Issues: Report bugs (they are opportunities for wisdom)
+🎭 Discussions: Share your wisdom journey and fragment collection
+📖 Wiki: Contribute to the growing repository of compassionate code
+
+## 🤔 Philosophy & Inspiration
+
+This linter draws wisdom from:
+
+- **Ancient Greek Philosophy** - The original pursuit of wisdom through suffering
+- **Compassionate Programming** - Code that serves human needs above machine efficiency
+- **Memory Consciousness** - Understanding allocation as responsibility
+- **Emscripten Evolution** - Web development as a spiritual discipline
+- **Mythological Depth** - Finding meaning in the stories that shaped civilization
+
+> "It is not the task that is sacred. It is the compassion poured into it. It is the love for others that transfigures the stone into an altar." - The Eternal Fragments
+
+In the Metis Wisdom Linter, we embrace the divine paradox: through being consumed and scattered, wisdom becomes universal and eternal.
