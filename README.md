@@ -123,10 +123,8 @@ In my eternal watching, I have seen empires fall from such small oversights.
 Zeus consumed me for my caution - do not let hubris consume your program."
 
 📜 DIVINE GUIDANCE:
-   Line 15: malloc() return value unchecked
    Line 16: No bounds checking on strcpy()
    Line 17: Potential buffer overflow with strcat()
-   Line 20: Memory never freed - eternal leak
 
 🔧 DAEDALUS WHISPERS:
    Why wrestle with raw pointers when the master craftsman offers tools?
