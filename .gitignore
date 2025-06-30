@@ -1,47 +1,47 @@
 .vscode/
 
 # Build artifacts
-  build/
-  *.o
-  *.obj
-  *.a
-  *.so
-  *.dll
-  *.exe
+build/
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
 
-  # Debug files
-  *.dSYM/
-  *.dwarf
-  *.gdb_history
+# Debug files
+*.dSYM/
+*.dwarf
+*.gdb_history
 
-  # Dependency files
-  *.d
+# Dependency files
+*.d
 
-  # Compiled binary
-  metis
+# Compiled binary
+metis
 
-  # Core dumps
-  core
-  core.*
+# Core dumps
+core
+core.*
 
-  # IDE/Editor files
-  .vscode/
-  .idea/
-  *.swp
-  *.swo
-  *~
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-  # OS files
-  .DS_Store
-  Thumbs.db
+# OS files
+.DS_Store
+Thumbs.db
 
-  # Development tools
-  *.log
-  vgcore.*
-  *.gcda
-  *.gcno
-  *.gcov
+# Development tools
+*.log
+vgcore.*
+*.gcda
+*.gcno
+*.gcov
 
-  # Temporary files
-  *.tmp
-  *.bak
+# Temporary files
+*.tmp
+*.bak
