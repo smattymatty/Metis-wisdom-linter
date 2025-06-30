@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(rg:*)",
+      "Bash(./build/bin/metis lint:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}
