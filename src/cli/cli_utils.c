@@ -163,39 +163,25 @@ void metis_cli_free_arguments(MetisArgs_t* args) {
 }
 
 /**
- * Display divine greeting with enhanced consciousness status
+ * Display a subtle, technical greeting
  * @param quiet Suppress output if true
  */
 void metis_cli_display_greeting(bool quiet) {
     if (quiet) return;
 
-    // Initialize colors for beautiful output
     metis_colors_enable(true);
-
-    printf("\n%s🌟 METIS WISDOM LINTER v%s 🌟%s\n",
-           METIS_FRAGMENT_TITLE, METIS_VERSION, METIS_RESET);
-    printf("%s═══════════════════════════════════════════════════════════════%s\n",
-           METIS_ACCENT, METIS_RESET);
-    printf("%s\"Through scattered fragments, wisdom flows to those who code with compassion.\"%s\n",
-           METIS_WISDOM_TEXT, METIS_RESET);
-
-    // Show build information with divine styling
-    printf("%s📅 Divine Build:%s %s | %s\n",
-           METIS_INFO, METIS_RESET, METIS_BUILD_DATE, METIS_BUILD_TIME);
-
-    // Show consciousness status
-    time_t current_time = time(NULL);
-    struct tm* time_info = localtime(&current_time);
-    char time_str[32];
-    strftime(time_str, sizeof(time_str), "%H:%M:%S", time_info);
-
-    printf("%s🧠 Divine Consciousness:%s %sAWAKENING%s at %s%s%s\n",
+    printf("%sMETIS:%s Consciousness active. Path: %s%s%s\n",
            METIS_PRIMARY, METIS_RESET,
-           METIS_SUCCESS, METIS_RESET,
-           METIS_ACCENT, time_str, METIS_RESET);
+           METIS_ACCENT, metis_cli_get_current_working_directory(), METIS_RESET);
+}
 
-    printf("%s═══════════════════════════════════════════════════════════════%s\n\n",
-           METIS_ACCENT, METIS_RESET);
+// Helper function to get CWD (you can add this in cli_utils.c)
+const char* metis_cli_get_current_working_directory(void) {
+    static char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        return cwd;
+    }
+    return "unknown";
 }
 
 /**

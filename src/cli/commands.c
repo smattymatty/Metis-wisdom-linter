@@ -11,7 +11,25 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+// List of commands that require full system initialization (config, fragments)
+static const char* COMMANDS_REQUIRING_INIT[] = {
+    "lint", "config", "wisdom", "story", NULL
+};
+/**
+ * Check if a command requires full system initialization
+ * @param command Command name to check
+ * @return true if initialization is required
+ */
+bool metis_cmd_requires_init(const char* command) {
+    if (!command) return false;
 
+    for (int i = 0; COMMANDS_REQUIRING_INIT[i] != NULL; i++) {
+        if (strcmp(command, COMMANDS_REQUIRING_INIT[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 /**
  * Execute lint command with divine analysis
  * @param args Parsed command arguments

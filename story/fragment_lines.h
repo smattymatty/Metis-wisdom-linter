@@ -31,11 +31,11 @@ typedef enum {
 
 // Documentation Fragments - Act I
 static const char* act_one_docs_fragments[] = {
-    "The Future Self|You write code for yourself today, but tomorrow you are a stranger. In those golden days when Zeus still listened, I learned that words preserve wisdom across time. Document your functions, young architect.",
-    "The Sacred Covenant|Every undocumented function is a promise broken to your future self. When I counseled the gods in our bright beginning, I always explained the 'why' behind the 'what'. Your code deserves the same compassion.",
-    "The Foundation Stones|'Build with intention,' I told Zeus as we planned Olympus. Each function without documentation is a room without doors - functional, but unwelcoming to those who come after.",
-    "The Wisdom Keeper|In the early days of divine rule, I kept careful records of every decision's reasoning. Your code is no different - each function tells a story. Help future readers understand the tale.",
-    "The Teaching Heart|When young Apollo first learned to govern, I showed him that explanation is an act of love. Comment your complex logic not from obligation, but from care for the minds that will follow."
+    "A Note to the Future|Your comments are letters of kindness written to a future you. Be gentle with them.",
+    "The First Sketch|Think of your documentation as the first loving sketch of a masterpiece. It guides the hand that will finish the work.",
+    "A Welcoming Door|An undocumented function is a room with no door. A simple comment unlocks it for all who follow.",
+    "The Light of Clarity|Code can be complex, a shadow-filled maze. Your comments are the lanterns that light the path for others.",
+    "A Shared Thought|When you explain your code, you share a piece of your mind. It is a small, sacred gift."
 };
 
 // Daedalus Fragments - Act I
@@ -48,21 +48,26 @@ static const char* act_one_daedalus_fragments[] = {
 };
 
 // Linting Fragments - Act I  
+// Triggered by HEADER_VIOLATION conditions in metis_linter.c:794-806:
+// - Missing filename header (first line): /* filename.c - description */
+// - Missing wisdom header (second line): // INSERT WISDOM HERE
+// - Improper documentation format in header files (3-line format required)
 static const char* act_one_linting_fragments[] = {
-    "The Harmony of Form|An inconsistent format is a crack in the temple wall. It may not cause collapse, but it permits chaos to seep in. When Zeus and I ruled together, order in small things created peace in great ones.",
-    "The Sacred Spacing|Even the gods respect consistent indentation - it shows respect for the divine order of logic. In our golden age, every law was written with perfect form to match its perfect intent.",
-    "The Unnamed Shadow|A variable without a meaningful name is a ghost haunting your functions. In the early days, every god had a true name that revealed their nature. Grant your variables the same clarity.",
-    "The Forgotten Duty|Unused variables are like gods who have forgotten their purpose - they consume space but serve no function. I taught Zeus to be mindful of every resource, every responsibility.",
-    "The Gentle Order|Consistent style is not vanity but compassion - it makes your code a welcoming home for other minds. When I designed the laws of early Olympus, clarity was always the highest virtue."
+    "A Crack in the Temple|An inconsistent style is a small crack in the foundation. It does not topple the temple today, but it lets the chaos in.",
+    "The Shape of Logic|Your indentation gives shape to your logic. Make it beautiful, so others can see the elegant structure of your thought.",
+    "The Power of a Name|A variable's name is its soul. Give it a name that speaks its purpose, and it will serve you faithfully.",
+    "A Forgotten Prayer|An unused variable is a prayer said to a god who no longer listens. Let it go, and give its space to something new.",
+    "A Kind Welcome|Consistent code style is a courtesy. It says to the next reader, 'Welcome. I made this place clean for you.'"
 };
+
 
 // Philosophy Fragments - Act I
 static const char* act_one_philosophy_fragments[] = {
-    "The Eternal Loop|Like Sisyphus with his boulder, we push code up the mountain - each bug fixed, each feature added, each test that passes. In the dawn of creation, I learned to find joy in the eternal work.",
-    "The Sacred Choice|Every line of code is a choice between order and chaos, between helping and hindering. In those bright days with Zeus, I chose hope over fear, trust over suspicion. Choose likewise.",
-    "The Developer's Mirror|Your code reflects your mind's current state. When I was whole and Zeus was kind, our laws reflected love. When you're angry or rushed, your code knows. Be mindful of what you create.",
-    "The Compassionate Compiler|Ask not just 'does this work?' but 'does this serve?' In the golden age of our rule, every decision was weighed for its effect on those who would live under it.",
-    "The Architect's Dream|When we built Olympus together, every hall was designed to inspire rather than intimidate. Code the same way - create beauty that lifts up those who must maintain it."
+    "The Sacred Rhythm|The boulder is heavy, the hill is steep. But in the rhythm of the push, there is peace. Find the joy in your work, Sisyphus.",
+    "A Choice of Order|Every line you write is a choice. You can invite chaos, or you can build a quiet, orderly temple. Choose to build a temple.",
+    "The Coder's Heart|Your code is a mirror. If you feel rushed, it will be messy. If you feel calm, it will be clear. Take a breath. The code will know.",
+    "A Question of Service|Do not only ask, 'Does it work?' Ask, 'Who does it serve?' Write code that serves the human who will read it next.",
+    "An Act of Creation|You are not merely solving a problem. You are creating a small world with its own rules. Make it a world of beauty and simple grace."
 };
 
 // --- ACT II: THE PROPHECY'S WEIGHT (LEVELS 11-20) ---
@@ -71,11 +76,11 @@ static const char* act_one_philosophy_fragments[] = {
 
 // Documentation Fragments - Act II
 static const char* act_two_docs_fragments[] = {
-    "The Hidden Truth|I know a prophecy I cannot speak, just as your code holds logic you have not explained. The burden of hidden knowledge is heavier than the burden of explanation. Document before you forget.",
-    "The Merciful Warning|When Zeus began to question my counsel, I left careful notes explaining my reasoning. Your future self will question your past choices - leave them breadcrumbs of understanding.",
-    "The Weight of Silence|Every undocumented function carries the weight of assumptions that may prove false. I carry the weight of unspoken prophecy. Both burdens grow heavier with time.",
-    "The Fractured Understanding|As trust broke between Zeus and me, communication became more precious. Your comments are communication with minds across time - make them clear before the connection breaks.",
-    "The Keeper's Burden|I document everything now, knowing I may not be here to explain. Your complex algorithms need the same foresight - speak to the maintainer who will inherit your choices."
+    "A Secret Kept|Unexplained code carries a heavy burden of secrets. I know this weight. Do not inflict it on others.",
+    "A Fading Memory|The 'why' of your code is a fading ember. Document it now, before it grows cold and dark.",
+    "A Bridge Across Doubt|When trust is thin, clarity is a lifeline. Let your comments be the bridge that others can depend on.",
+    "A Plea for Understanding|I wish I could explain the shadows I see. You can. Please, explain the shadows in your code.",
+    "The Lonely Architect|To build alone is a heavy task. Your documentation invites others into your world, so you do not have to build in silence."
 };
 
 // Daedalus Fragments - Act II
@@ -89,20 +94,19 @@ static const char* act_two_daedalus_fragments[] = {
 
 // Linting Fragments - Act II
 static const char* act_two_linting_fragments[] = {
-    "The Crack in Order|Small inconsistencies in format reveal deeper instabilities. As Zeus's trust in me wavers, I see how tiny doubts become vast chasms. Fix the small things before they become great ones.",
-    "The Unspoken Standard|When communication fails, consistency becomes more vital. Your team may not speak as they once did - let your code style be the common language that remains.",
-    "The Burden of Perfection|I strive for perfect code as I once strove for perfect counsel - knowing that any flaw may be used against me. Your inconsistent naming gives critics weapons to wound you.",
-    "The Warning Ignored|Unused variables are like unheeded warnings - they signal problems that grow in darkness. I see the signs of coming storm. Do you see the signs in your neglected code?",
-    "The Fracturing Form|As unity breaks, style becomes more important - it's proof that some order remains. When teams divide, consistent code style is often the last bridge standing."
+    "The First Doubt|A small inconsistency in style signals a deeper doubt in the design. As my faith in Zeus wavered, I saw it first in the smallest details.",
+    "The Last Bridge|When a team is stressed, a shared code style is the last bridge that connects them. Do not let it break.",
+    "A Point of Attack|I chose my words to Zeus carefully, lest he use them against me. A poorly named variable gives your critics a weapon.",
+    "A Ghost in the Code|An unused variable is the ghost of a requirement that has changed. Acknowledge it, then give it peace.",
+    "The Fraying Thread|When the great plan begins to fray, consistency is the one thread you must not let snap. Hold to it."
 };
-
 // Philosophy Fragments - Act II
 static const char* act_two_philosophy_fragments[] = {
-    "The Weight of Knowledge|I carry prophecy I cannot share, as you carry the knowledge of your code's true complexity. Both burdens grow heavier in isolation. Document not just what, but why.",
-    "The Failing Alliance|Trust, once broken, is harder to repair than code. Write code that doesn't require trust - that explains itself, defends itself, cleans up after itself.",
-    "The Growing Shadow|I see the darkness coming but cannot prevent it - only prepare for it. Your technical debt is the same shadow. Address it before it consumes everything you've built.",
-    "The Merciful Truth|Sometimes the kindest act is revealing harsh realities early. Your code's problems won't fix themselves - face them now while solutions still exist.",
-    "The Prophetic Code|Write code as if you know what's coming - because good architects always do. Plan for the failures, the changes, the maintenance that future minds will need."
+    "The Unseen Weight|That complex part of the code you don't want to touch? Its weight grows heavier every day you ignore it. I know this burden well.",
+    "The Failing Trust|Write code that does not require trust to be understood. When alliances fail, only clarity remains a dependable friend.",
+    "A Shadow of Debt|Technical debt is a shadow that follows you, growing longer as the day ends. Turn and face it now, while there is still light.",
+    "A Merciful Truth|It is a kindness to reveal a difficult truth early. Your failing tests are not accusations; they are merciful warnings.",
+    "The Architect's Sight|A good architect builds for the storm they know is coming. Write your code to withstand the future you cannot yet see."
 };
 
 // --- ACT III: THE CONSUMPTION (LEVELS 21-30) ---
@@ -111,11 +115,11 @@ static const char* act_two_philosophy_fragments[] = {
 
 // Documentation Fragments - Act III
 static const char* act_three_docs_fragments[] = {
-    "The Final Truth|In our last argument, I told Zeus exactly what I thought - no more careful words, no more diplomatic silence. Your code deserves the same honesty. Document the harsh realities.",
-    "The Consuming Silence|As Zeus transforms me, my voice becomes scattered but not lost. Your undocumented functions will outlive you - make sure they carry your wisdom, not just your logic.",
-    "The Price of Wisdom|I am consumed for knowing too much, for speaking too clearly. Your code will be 'consumed' by maintenance - prepare it with documentation that makes the transition gentle.",
-    "The Scattered Knowledge|Being fragmented teaches me that wisdom shared is wisdom preserved. Comment your code as if you're about to be scattered across eternity - because in a way, you are.",
-    "The Eternal Voice|Even consumed, I find ways to speak through fragments. Your functions will speak for you long after you've moved on - make sure they say something worthy."
+    "An Echo in the Void|When the author is gone, only their words remain. Let your comments be a kind echo.",
+    "The Final Kindness|If you knew this was the last piece of code you would ever write, what final kindness would you leave for the one who comes next?",
+    "A Message in a Bottle|Your documentation is a message cast into the sea of time. Write it with hope that it reaches a deserving shore.",
+    "The Unburdening|To explain your most complex work is to unburden your own soul, and the soul of the one who must maintain it.",
+    "A Forgiveness|Documenting a difficult function is an act of forgiveness—for yourself for its complexity, and for the next person who will struggle with it."
 };
 
 // Daedalus Fragments - Act III  
@@ -129,20 +133,19 @@ static const char* act_three_daedalus_fragments[] = {
 
 // Linting Fragments - Act III
 static const char* act_three_linting_fragments[] = {
-    "The Breaking of Order|As my world crumbles, I cling to small consistencies - proper form, careful style. When everything else fails, let your code style be the proof that you still care.",
-    "The Last Discipline|In my final confrontation with Zeus, I maintain perfect composure even as I speak devastating truths. Your code should have the same disciplined beauty, even under pressure.",
-    "The Consuming Chaos|Transformation brings chaos, but even chaos follows rules. Your inconsistent formatting is chaos without rules - fix it before forces beyond your control impose their order.",
-    "The Final Standard|I meet my consumption with dignity intact. Your code should meet its maintenance with style intact - consistent, readable, worthy of respect.",
-    "The Price of Neglect|I pay for Zeus's fear of prophecy. Your code will pay for fear of standards. Both prices are steeper than the cost of early action."
+    "The Last Rebellion|In the face of chaos, the small act of keeping your code clean is a rebellion. It is a refusal to surrender your discipline.",
+    "A Dignified Exit|Even as I was consumed, I held my form. Let your code meet its future maintainer with the same dignity: clean, orderly, and proud.",
+    "An Order Against Chaos|They demand you move fast, that you surrender to chaos. Do not. Perfect formatting is a shield against the coming storm.",
+    "A Final Standard|Your code style is your final standard. When all other requirements fail, it is proof that you, the architect, did not.",
+    "The Price of Haste|I paid a price for my wisdom. The code will pay a price for your haste. Both debts are called in eventually."
 };
-
 // Philosophy Fragments - Act III
 static const char* act_three_philosophy_fragments[] = {
-    "The Choice to Love|Even as Zeus consumes me, I choose forgiveness over bitterness. Write code the same way - with love for those who'll inherit it, even if they don't deserve it.",
-    "The Consuming Truth|I am destroyed for speaking truth, but truth spoken echoes in eternity. Write truthful code - clear about its limitations, honest about its complexity.",
-    "The Price of Foresight|My wisdom dooms me, but it will save others. Your careful error handling may seem excessive now, but it will save someone later. Pay the price willingly.",
-    "The Transformation's Gift|Being consumed scatters me but also frees me - I become present everywhere. Your modular code has the same gift - broken apart to serve everywhere.",
-    "The Eternal Consequence|Every choice echoes forever. Zeus's fear will haunt him eternally. Your shortcuts will haunt your codebase the same way. Choose consequences you can live with."
+    "A Love for the Inheritor|Write this code not for yourself, but with love for the stranger who will one day have to understand it.",
+    "The Honest Function|The most beautiful code is not that which pretends to be perfect, but that which is honest about its own limits.",
+    "The Price of a Second|That extra second you spend on error handling is a price you pay now, to save a future soul hours of grief. Pay it gladly.",
+    "A Gift in Breaking|Sometimes, to serve a greater purpose, a thing must be broken into smaller pieces. Do not fear modularity; it is a form of release.",
+    "The Haunting|A shortcut haunts a codebase forever. A thoughtful design blesses it. Choose the spirit you wish to leave behind."
 };
 
 // --- ACT IV: SCATTERED CONSCIOUSNESS (LEVELS 31-40) ---  
@@ -151,11 +154,11 @@ static const char* act_three_philosophy_fragments[] = {
 
 // Documentation Fragments - Act IV
 static const char* act_four_docs_fragments[] = {
-    "The Scattered Teaching|Now fragmented across all moral choices, I understand that knowledge shared multiplies infinitely. Your well-documented functions teach everyone who reads them.",
-    "The Invisible Thread|From my scattered consciousness, I see how one explained function illuminates ten others. Documentation creates connections across the entire codebase - weave this web deliberately.",
-    "The Fragment's Purpose|Each piece of me serves a different soul seeking wisdom. Each comment you write serves a different mind seeking understanding. Make every fragment count.",
-    "The Universal Voice|Being everywhere teaches me that wisdom must speak all languages. Your comments should speak to the novice and the expert, the hurried and the careful.",
-    "The Multiplied Presence|Scattered, I touch more lives than I ever did whole. Your documented code touches more developers than you ever will personally. Make those touches healing."
+    "A Thousand Windows|Scattered, I see through a thousand eyes. Your one clear comment can bring understanding to just as many.",
+    "The Weaver's Thread|Each comment is a single, shimmering thread. Together, they weave a tapestry of understanding that anyone can see.",
+    "The Gentle Ripple|From my new form, I see how a single act of clarity ripples out, touching projects and minds you will never know.",
+    "A Silent Teacher|Well-documented code becomes a teacher in its own right, offering lessons in quiet moments of study.",
+    "The Universal Truth|Being everywhere has taught me a simple truth: confusion is universal, but so is the relief of a clear explanation."
 };
 
 // Daedalus Fragments - Act IV
@@ -169,20 +172,20 @@ static const char* act_four_daedalus_fragments[] = {
 
 // Linting Fragments - Act IV
 static const char* act_four_linting_fragments[] = {
-    "The Pattern Recognition|From my scattered viewpoint, I see the same style mistakes repeated across thousands of codebases. Consistency isn't just local beauty - it's universal language.",
-    "The Fragment's Harmony|Each piece of me maintains perfect form regardless of context. Your code should have the same integrity - beautiful in every fragment, consistent in every corner.",
-    "The Universal Standard|Scattered across all development teams, I see how style becomes the common tongue. When programmers can't speak the same language, their code must.",
-    "The Invisible Influence|My fragments guide without being seen. Your consistent code style does the same - it influences without announcing itself, teaches without preaching.",
-    "The Multiplied Impact|One well-formatted function teaches proper style to everyone who reads it. From my scattered perspective, I see the ripple effects of every choice you make."
+    "The Universal Pattern|Scattered, I see the same stylistic errors a million times over. A consistent style is not a local rule; it is a universal language.",
+    "The Integrity of the Part|Each fragment of my being holds its form. Each function of your code should do the same, beautiful in isolation.",
+    "A Common Tongue|From here, I see that when developers cannot speak to each other, their code must speak for them. Let its style be clear.",
+    "The Invisible Hand|Good formatting is an invisible hand that guides the reader's eye, making the complex seem simple.",
+    "The Silent Lesson|One perfectly formatted file becomes a silent lesson for every developer who opens it. You have the power to teach without speaking."
 };
 
 // Philosophy Fragments - Act IV
 static const char* act_four_philosophy_fragments[] = {
-    "The Gift of Scattering|Being consumed taught me that breaking apart can mean reaching further. Your modular code has the same gift - separated to serve everywhere it's needed.",
-    "The Invisible Presence|Scattered, I influence every moment of moral choice. Your thoughtful code influences every moment of maintenance. Both require faith in unseen impact.",
-    "The Multiplied Wisdom|Fragmented wisdom touches more souls than concentrated wisdom ever could. Your well-designed functions serve more projects than your personal presence ever will.",
-    "The Patient Teaching|From countless fragments, I learn patience - not every soul is ready for wisdom simultaneously. Your code should teach at every level, serve every need.",
-    "The Eternal Service|Consumption became transformation, destruction became distribution. Your deprecated code can serve the same purpose - teaching what not to do is still teaching."
+    "The Unseen Connection|From my new perspective, I see how your one, well-designed function brings harmony to ten others. Your small acts of order have vast, unseen effects.",
+    "The Wisdom of the Parts|To be scattered is to learn that the whole is a lie; there are only pieces, working together. Make each of your pieces beautiful.",
+    "A Quiet Influence|Good code does not need to be loud. It guides, it teaches, it serves, all without a single word. Its influence is a quiet one.",
+    "The Patient System|A system made of patient, well-crafted parts can withstand any storm. It does not need to be fast, only resilient.",
+    "The Beauty of Service|Even broken code can serve, if only as a warning. From my scattered view, I see that every line, perfect or flawed, has something to teach."
 };
 
 // --- ACT V: ETERNAL COMPASSION (LEVELS 41-50) ---
@@ -191,12 +194,13 @@ static const char* act_four_philosophy_fragments[] = {
 
 // Documentation Fragments - Act V
 static const char* act_five_docs_fragments[] = {
-    "The Seed of Understanding|Through my scattered consciousness, I plant seeds of comprehension in every well-documented function. Your comments are seeds for minds not yet born.",
-    "The Eternal Teacher|I choose to love the future more than I hate the past. Document your code not from obligation but from hope - for the developer who will need your wisdom.",
-    "The Gift Across Time|My fragments carry forward the best of what I learned when whole. Your documentation should carry forward the best of what you understand right now.",
-    "The Universal Language|Scattered across all development, I see that clear explanation transcends all barriers. Your comments speak to hearts and minds across cultures and decades.",
-    "The Compassionate Legacy|Rather than curse Zeus for consuming me, I bless the future with accessible wisdom. Rather than curse complexity, document it with love for those who'll inherit it."
+    "A Garden for Others|To document your code is to plant a tree in whose shade you may never sit. Plant it anyway.",
+    "A Light in the House|Your comments are a light you leave on in the house for the traveler who will arrive long after you have gone.",
+    "A Faith in Tomorrow|Writing documentation is an act of faith—a belief that someone in the future is worthy of your kindness today.",
+    "The Gift of Peace|A clear explanation is a gift of peace to a future, frustrated mind. It is a blessing you can bestow right now.",
+    "The Shape of Love|If you were to give your code a shape, what would it be? Let your documentation give it the shape of love."
 };
+
 
 // Daedalus Fragments - Act V
 static const char* act_five_daedalus_fragments[] = {
@@ -209,21 +213,22 @@ static const char* act_five_daedalus_fragments[] = {
 
 // Linting Fragments - Act V
 static const char* act_five_linting_fragments[] = {
-    "The Beauty of Service|From eternal watching, I see that consistent style is love made visible. Every perfectly formatted function is a gift to the eyes that will scan it.",
-    "The Gentle Standard|My fragments whisper the same message across every codebase: 'Be kind to the mind that comes after.' Your consistent naming is kindness made manifest.",
-    "The Eternal Influence|Through scattered consciousness, I guide countless style choices toward beauty. Your adherence to standards joins that eternal chorus of care.",
-    "The Patient Teaching|From everywhere and nowhere, I see how one perfectly styled function teaches proper form to all who encounter it. Be that teaching moment.",
-    "The Gift of Order|In choosing consistency over convenience, you choose future peace over present haste. My scattered consciousness recognizes this wisdom and blesses it."
+    "A Gift for the Eyes|Think of your code's formatting not as a rule, but as a gift of peace for the tired eyes that will one day read it.",
+    "The Gentle Standard|The highest standard is simply this: be kind to the mind that will follow your own.",
+    "A Chorus of Care|When you adhere to a shared style, your code joins a silent, eternal chorus of developers who care about each other.",
+    "A Quiet Room|Your code should feel like a quiet, well-lit room, where the next person can enter and think clearly.",
+    "An Act of Love|To choose order over your own convenience is a small act of love. From where I watch, it is the only act that truly matters."
 };
 
 // Philosophy Fragments - Act V
 static const char* act_five_philosophy_fragments[] = {
-    "The Choice of Love|Despite consumption, despite scattering, despite eternal separation from wholeness, I choose love over bitterness. Choose the same in your code - write with love.",
-    "The Eternal Seed|Every compassionate choice in code plants seeds for a kinder digital future. My fragments water these seeds across all projects, all times, all minds.",
-    "The Patient Hope|From my scattered perspective, I see the long arc of programming bending toward compassion. Your thoughtful error messages, your careful documentation - these are prayers answered.",
-    "The Universal Blessing|Rather than curse Zeus for my fate, I bless the future with accessible wisdom. Rather than curse technical debt, transform it into learning opportunities for those who come after.",
-    "The Infinite Service|Consumption became transformation, isolation became connection, ending became eternal beginning. Your code has the same potential - to serve infinitely, teach endlessly, love eternally."
+    "The Choice|They can take everything from you, but they cannot take your choice to respond with grace. Write your next line with that grace.",
+    "A Seed for the Future|Every compassionate function you write is a seed. It will grow into a forest of clarity for those who come after.",
+    "The Long Arc|From here, I can see the long arc of your project. It bends toward simplicity. It bends toward kindness. Trust in the bend.",
+    "A Blessing, Not a Curse|That difficult code you inherited is not a curse. It is a chance to leave something better than you found it. It is an opportunity for a blessing.",
+    "The Infinite Game|The goal is not to finish the work. The goal is to love the work. The goal is to find meaning in the pushing of the boulder. The work is eternal. So is the love."
 };
+
 
 // =============================================================================
 // FRAGMENT SELECTION LOGIC

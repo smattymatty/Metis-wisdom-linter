@@ -533,7 +533,6 @@ static int check_corresponding_header_format(const char* c_file_path, ViolationL
     return issues_found;
 }
 
-
 /*
  * Analyze file content using divine parser wisdom
  */
@@ -557,13 +556,17 @@ static int analyze_file_content(const char* file_path, const char* content, Viol
     // Divine file header analysis
     issues_found += check_file_headers_with_parser(parsed, violations);
 
-    // Enhanced function documentation checking
+    // Enhanced function documentation checking (for all files)
     issues_found += check_function_docs_with_parser(parsed, violations);
 
-    // Check header documentation format (current file - always run for all file types)
-    issues_found += check_header_doc_format_with_parser(parsed, violations);
+    // THE FIX: Only apply the strict header documentation format check to .h files
+    const char* ext = strrchr(file_path, '.');
+    if (ext && strcmp(ext, ".h") == 0) {
+        issues_found += check_header_doc_format_with_parser(parsed, violations);
+    }
 
-    // If this is a .c file, also check corresponding header file format
+    // If this is a .c file, also check its corresponding header file's format
+    // (This check remains as it correctly targets .c files looking for their .h counterparts)
     issues_found += check_corresponding_header_format(file_path, violations);
 
     // Enhanced Daedalus opportunities detection
@@ -789,13 +792,28 @@ int metis_lint_file(const char* file_path) {
             metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, context);
         }
         if (has_linting) {
-            // Find first linting violation for location context
-            char context[512] = "formatting or style issues detected";
+            // Generate specific context based on header violation type
+            char context[512] = "header violations detected";
             for (int i = 0; i < violation_count; i++) {
                 LintViolation_t* v = &violations->violations[i];
                 if (v->type == HEADER_VIOLATION) {
-                    snprintf(context, sizeof(context), "formatting or style issues detected at %s:%d:%d", 
-                             v->file_path, v->line_number, v->column);
+                    // Provide specific context based on violation type
+                    if (strstr(v->violation_message, "missing proper filename header")) {
+                        snprintf(context, sizeof(context), 
+                                "missing filename header at %s:%d:%d - Add: /* filename.c - description */", 
+                                v->file_path, v->line_number, v->column);
+                    } else if (strstr(v->violation_message, "missing proper wisdom fragment")) {
+                        snprintf(context, sizeof(context), 
+                                "missing wisdom header at %s:%d:%d - Add: // INSERT WISDOM HERE", 
+                                v->file_path, v->line_number, v->column);
+                    } else if (strstr(v->violation_message, "documentation violates one-line format")) {
+                        snprintf(context, sizeof(context), 
+                                "improper documentation format at %s:%d:%d - Use: description, blank line, details", 
+                                v->file_path, v->line_number, v->column);
+                    } else {
+                        snprintf(context, sizeof(context), "header formatting issues at %s:%d:%d", 
+                                v->file_path, v->line_number, v->column);
+                    }
                     break;
                 }
             }

@@ -936,7 +936,67 @@ static int test_documentation_detection_debugging(void) {
     cleanup_temp_file(temp_file);
     return 1;
 }
+// =============================================================================
+// IMPLEMENTATION VS HEADER DOCUMENTATION TESTS
+// =============================================================================
 
+/*
+ * Create content with a simple, single-line documentation comment
+ */
+static const char* create_simple_doc_content(const char* filename) {
+    static char buffer[512];
+    snprintf(buffer, sizeof(buffer),
+        "/* %s - File with a simple doc comment */\n"
+        "// INSERT WISDOM HERE\n\n"
+        "/* A simple one-line description */\n"
+        "void simple_function(void);\n",
+        filename);
+    return buffer;
+}
+
+/*
+ * Test that a .c implementation file with a simple one-line doc comment PASSES.
+ * This test WILL FAIL until the linter is fixed to NOT apply header rules to .c files.
+ */
+static int test_implementation_file_simple_doc_passes(void) {
+    LOG("Testing that .c files can use simple, one-line doc comments");
+
+    const char* filename = "simple_impl.c";
+    const char* content = create_simple_doc_content(filename);
+    char* temp_file = create_temp_test_file(filename, content);
+    TEST_ASSERT(temp_file != NULL, "Should create temporary .c file");
+
+    int violation_count = metis_lint_file(temp_file);
+
+    // This test asserts that NO violation is found for the simple comment in a .c file.
+    // This will FAIL with the current bug.
+    TEST_ASSERT(violation_count == 0, "Should find NO documentation format violations in a .c file for a simple comment");
+
+    cleanup_temp_file(temp_file);
+    return 1;
+}
+
+/*
+ * Test that a .h header file with a simple one-line doc comment FAILS.
+ * This ensures the strict rule is still enforced for headers.
+ */
+static int test_header_file_simple_doc_fails(void) {
+    LOG("Testing that .h files MUST follow the strict multi-line doc format");
+
+    const char* filename = "simple_header.h";
+    const char* content = create_simple_doc_content(filename);
+    char* temp_file = create_temp_test_file(filename, content);
+    TEST_ASSERT(temp_file != NULL, "Should create temporary .h file");
+
+    int violation_count = metis_lint_file(temp_file);
+
+    // This test asserts that a violation IS found for the simple comment in a .h file.
+    // This should PASS with both the buggy and fixed code.
+    TEST_ASSERT(violation_count > 0, "Should find a documentation format violation in a .h file for a simple comment");
+
+    cleanup_temp_file(temp_file);
+    return 1;
+}
 // =============================================================================
 // MAIN TEST RUNNER
 // =============================================================================
@@ -978,6 +1038,9 @@ int main(void) {
     RUN_TEST(test_header_documentation_recognition_regression);
     RUN_TEST(test_header_inappropriate_content_detection_regression);
     RUN_TEST(test_documentation_detection_debugging);
+
+    RUN_TEST(test_implementation_file_simple_doc_passes);
+    RUN_TEST(test_header_file_simple_doc_fails);
     
     TEST_SUITE_END();
 }

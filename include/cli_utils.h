@@ -50,4 +50,5 @@ bool metis_cli_is_file(const char* path);
 bool metis_cli_is_directory(const char* path);
 bool metis_cli_path_exists(const char* path);
 
+const char* metis_cli_get_current_working_directory(void);
 #endif // CLI_UTILS_H

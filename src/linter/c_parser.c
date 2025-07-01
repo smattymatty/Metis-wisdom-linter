@@ -388,6 +388,7 @@ static int read_operator(ParserContext_t* ctx, char* buffer, size_t buffer_size)
 
 /*
  * Check if a word is a C keyword
+ * FIXED: Now also checks for 'inline' keyword
  */
 bool c_parser_is_c_keyword(const char* word) {
     if (!word) return false;
