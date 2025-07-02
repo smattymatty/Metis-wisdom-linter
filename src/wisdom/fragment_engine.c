@@ -5,7 +5,7 @@
 #include "fragment_engine.h"
 #include "metis_config.h"
 #include "metis_colors.h"
-#include "../../story/fragment_lines.h"
+#include "../../story/fragment_lines.h" // Correct path to your refactored header
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -125,53 +125,8 @@ static const char* select_story_fragment(FragmentType_t type) {
 static const char* get_daedalus_technical_guidance(const char* context) {
     if (!context) return NULL;
     
-    // String function violations
-    if (strstr(context, "strcpy") || strstr(context, "strcat") || strstr(context, "sprintf")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dString_t for safe string handling:\n" METIS_RESET
-               "   dString_t* str = d_InitString();\n"
-               "   d_AppendString(str, \"Hello\", 0);\n"
-               "   d_AppendString(str, \" World\", 0);\n"
-               "   // Automatic growth, bounds checking, cleanup";
-    }
-    
-    // Managing Memory on Arrays violations  
-    if (strstr(context, "malloc") || strstr(context, "realloc") || strstr(context, "array")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dArray_t for safe memory management:\n" METIS_RESET
-               "   dArray_t* arr = d_InitArray(10, sizeof(int));\n"
-               "   int value = 42;\n"
-               "   d_AppendArray(arr, &value);\n"
-               "   // Automatic resizing, bounds checking, cleanup";
-    }
-    
-    // Logging violations
-    if (strstr(context, "printf") || strstr(context, "fprintf") || strstr(context, "debug")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dLog for structured logging:\n" METIS_RESET
-               "   d_LogInfo(\"User action completed\");\n"
-               "   d_LogErrorF(\"Failed to process %s\", filename);\n"
-               "   // Level-based filtering, file output, thread safety";
-    }
-    
-    // Mathematical violations
-    if (strstr(context, "vector") || strstr(context, "matrix") || strstr(context, "math")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dVec/dMat for mathematical operations:\n" METIS_RESET
-               "   dVec3_t result;\n"
-               "   d_AddTwoVec3f(&result, pos1, pos2);\n"
-               "   d_NormalizeVec3f(&result, result);\n"
-               "   // Optimized algorithms, consistent API, tested precision";
-    }
-    
-    // Data structure violations
-    if (strstr(context, "linked list") || strstr(context, "spatial") || strstr(context, "search")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use specialized data structures:\n" METIS_RESET
-               "   dLinkedList_t* list = d_CreateLinkedList(data, \"name\", size);\n"
-               "   dQuadTree_t* spatial = d_CreateQuadtree(bounds, capacity);\n"
-               "   // Optimized algorithms, memory efficient, well-tested";
-    }
-    
-    // Generic recommendation for other cases
-    return "🔧 DAEDALUS RECOMMENDS: Check the master craftsman's library for pre-built solutions.\n" METIS_RESET
-           "   #include <daedalus.h> for comprehensive tools that handle edge cases,\n"
-           "   memory management, and performance optimizations you haven't considered.";
+    // *** REFRACTOR HERE: Call the centralized function ***
+    return get_daedalus_guidance_for_context(context);
 }
 
 /* Checks if a fragment of this type has already been delivered this session */
@@ -277,7 +232,7 @@ void metis_deliver_fragment(FragmentType_t type, const char* context) {
     
     // Add context-specific technical guidance for Daedalus fragments
     if (type == DAEDALUS_FRAGMENT && context) {
-        const char* technical_guidance = get_daedalus_technical_guidance(context);
+        const char* technical_guidance = get_daedalus_technical_guidance(context); // This will now call the refactored function
         if (technical_guidance) {
             printf("\n%s%s%s\n", METIS_SUCCESS, technical_guidance, METIS_RESET);
         }

@@ -782,6 +782,125 @@ static int test_one_line_documentation_format_bug(void) {
 }
 
 /*
+ * Test for the "piss" detection bug - inappropriate content should be caught
+ */
+static int test_inappropriate_content_detection_bug(void) {
+    LOG("DEBUG: Testing inappropriate content detection in header documentation");
+    
+    // This content mirrors the actual bug in include/c_parser.h line 283
+    const char* header_with_piss = 
+        "/* test_header.h - Header with inappropriate content */\n"
+        "// INSERT WISDOM HERE\n"
+        "\n"
+        "#ifndef TEST_HEADER_H\n"
+        "#define TEST_HEADER_H\n"
+        "\n"
+        "/*\n"
+        " * Check if a function has associated documentation\n"
+        " * Also piss\n"
+        " *\n"
+        " * `parsed` - Parsed file structure to search\n"
+        " * `func_name` - Function name to check (must be null-terminated)\n"
+        " *\n"
+        " * `bool` - true if function has documentation, false otherwise\n"
+        " */\n"
+        "bool c_parser_has_documentation_for_function(ParsedFile_t* parsed, const char* func_name);\n"
+        "\n"
+        "#endif\n";
+    
+    ParsedFile_t* parsed = c_parser_parse_content(header_with_piss, "test_header.h");
+    TEST_ASSERT(parsed != NULL, "Parser should successfully parse header content");
+    
+    printf("Function count: %d\n", parsed->function_count);
+    for (int i = 0; i < parsed->function_count; i++) {
+        printf("Function %d: %s (line %d)\n", i, parsed->functions[i].name, parsed->functions[i].line_number);
+    }
+    
+    // Debug: Check what comment tokens were found
+    printf("Comment tokens found:\n");
+    for (int i = 0; i < parsed->token_count; i++) {
+        if (parsed->tokens[i].type == TOKEN_COMMENT_BLOCK) {
+            printf("Comment token %d (line %d):\n", i, parsed->tokens[i].line);
+            printf("Content: '%s'\n", parsed->tokens[i].value);
+            
+            // Check if "piss" is in the raw comment content
+            if (strstr(parsed->tokens[i].value, "piss")) {
+                printf("*** FOUND 'piss' in comment token!\n");
+            }
+        }
+    }
+    
+    // Test that function has documentation
+    bool has_docs = c_parser_has_documentation_for_function(parsed, "c_parser_has_documentation_for_function");
+    printf("Has documentation: %s\n", has_docs ? "true" : "false");
+    TEST_ASSERT(has_docs, "Function should have documentation detected");
+    
+    // CRITICAL TEST: The format check should return FALSE due to "piss" content
+    bool proper_format = c_parser_has_proper_header_doc_format(parsed, "c_parser_has_documentation_for_function");
+    printf("Has proper format: %s\n", proper_format ? "true" : "false");
+    
+    // This is the main bug - this should return FALSE because of inappropriate content
+    TEST_ASSERT(!proper_format, "Should detect inappropriate content 'piss' and return false");
+    
+    c_parser_free_parsed_file(parsed);
+    return 1;
+}
+
+/*
+ * Test FIXED content detection - should also be flagged as inappropriate
+ */
+static int test_fixed_comment_detection_bug(void) {
+    LOG("DEBUG: Testing FIXED comment detection in header documentation");
+    
+    // Test content with FIXED: comment which should also be inappropriate
+    const char* header_with_fixed = 
+        "/* test_fixed.h - Header with FIXED comment */\n"
+        "// INSERT WISDOM HERE\n"
+        "\n"
+        "/*\n"
+        " * Parse C source code content\n"
+        " * FIXED: Memory leak in tokenizer\n"
+        " *\n"
+        " * `content` - C source code content to parse\n"
+        " *\n"
+        " * `ParsedFile_t*` - Complete parsed file structure\n"
+        " */\n"
+        "ParsedFile_t* c_parser_parse_content(const char* content, const char* file_path);\n";
+    
+    ParsedFile_t* parsed = c_parser_parse_content(header_with_fixed, "test_fixed.h");
+    TEST_ASSERT(parsed != NULL, "Parser should successfully parse content with FIXED comment");
+    
+    printf("Function count: %d\n", parsed->function_count);
+    for (int i = 0; i < parsed->function_count; i++) {
+        printf("Function %d: %s\n", i, parsed->functions[i].name);
+    }
+    
+    // Debug: Check comment content
+    printf("Comment tokens:\n");
+    for (int i = 0; i < parsed->token_count; i++) {
+        if (parsed->tokens[i].type == TOKEN_COMMENT_BLOCK) {
+            printf("Comment: '%s'\n", parsed->tokens[i].value);
+            if (strstr(parsed->tokens[i].value, "FIXED:")) {
+                printf("*** FOUND 'FIXED:' in comment token!\n");
+            }
+        }
+    }
+    
+    // Test documentation detection
+    bool has_docs = c_parser_has_documentation_for_function(parsed, "c_parser_parse_content");
+    TEST_ASSERT(has_docs, "Function should have documentation detected");
+    
+    // Test format validation - should fail due to FIXED: content
+    bool proper_format = c_parser_has_proper_header_doc_format(parsed, "c_parser_parse_content");
+    printf("Has proper format: %s\n", proper_format ? "true" : "false");
+    
+    TEST_ASSERT(!proper_format, "Should detect inappropriate content 'FIXED:' and return false");
+    
+    c_parser_free_parsed_file(parsed);
+    return 1;
+}
+
+/*
  * Test 5: Null pointer and edge case attack
  */
 static int test_null_pointer_edge_cases(void) {
@@ -874,6 +993,10 @@ int main(void) {
     RUN_TEST(test_memory_exhaustion_attack);
     RUN_TEST(test_one_line_documentation_format_bug);
     RUN_TEST(test_null_pointer_edge_cases);
+    
+    // Bug reproduction tests
+    RUN_TEST(test_inappropriate_content_detection_bug);
+    RUN_TEST(test_fixed_comment_detection_bug);
     
     TEST_SUITE_END();
 }

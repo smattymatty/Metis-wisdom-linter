@@ -296,7 +296,7 @@ static int test_invalid_4line_format_rejection(void) {
     LOG("Testing invalid 4-line format rejection");
     
     const char* content = create_invalid_4line_format_content();
-    char* temp_file = create_temp_test_file("invalid_4line.c", content);
+    char* temp_file = create_temp_test_file("invalid_4line.h", content);
     TEST_ASSERT(temp_file != NULL, "Should create temporary test file");
     
     LOG("DEBUG: Running linter on file with invalid 4-line format");

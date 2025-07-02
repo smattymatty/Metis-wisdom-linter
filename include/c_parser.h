@@ -278,22 +278,22 @@ const char* c_parser_token_type_name(TokenType_t type);
  */
 FunctionInfo_t* c_parser_find_function_at_line(ParsedFile_t* parsed, int line);
 
+
 /*
- * Check if a function has associated documentation
- * Also piss
+ * Check if a specific line contains a text pattern
  *
  * `parsed` - Parsed file structure to search
- * `func_name` - Function name to check (must be null-terminated)
+ * `line` - Line number to check (1-based)
+ * `pattern` - Text pattern to search for (must be null-terminated)
  *
- * `bool` - true if function has documentation, false otherwise
+ * `bool` - true if pattern found on line, false otherwise
  *
- * -- Returns false if parsed or func_name is NULL, or function not found
- * -- Searches for comments within 5 lines before function definition
- * -- Recognizes both line comments (//) and block comments
- * -- Updates function's has_documentation flag when documentation found
- * -- Core function for documentation linting and completeness analysis
- * -- Used to identify undocumented public functions
- */
+ * -- Returns false if parsed or pattern is NULL
+ * -- Searches through all tokens on the specified line
+ * -- Uses substring matching (strstr) for flexible pattern detection
+ * -- Case-sensitive pattern matching
+ * -- Used for custom linting rules and pattern-based analysis
+*/
 bool c_parser_has_documentation_for_function(ParsedFile_t* parsed, const char* func_name);
 
 /*

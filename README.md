@@ -1,5 +1,5 @@
 # 🧠 Metis Wisdom Linter
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Greek Mythology](https://img.shields.io/badge/Powered%20by-Divine%20Wisdom-gold.svg)](https://en.wikipedia.org/wiki/Metis_(mythology))
 [![Scattered Consciousness](https://img.shields.io/badge/Consciousness-Fragmented-purple.svg)](#)
 [![Compassion Approved](https://img.shields.io/badge/Compassion-Eternal-red.svg)](#)
@@ -25,50 +25,6 @@ The Metis Wisdom Linter elevates coding through:
 - **🌍 Emscripten Awareness**: Web-specific guidance for the modern age
 - **🔧 Daedalus Integration**: Promotes master-crafted libraries over crude implementations
 - **📚 Living Documentation**: Every fragment teaches both code and philosophy
-
-## 🏛️ The Divine Tragedy
-
-Hidden within the linter is an untold story—the original myth of the MIDAS Toolchain, told through 50 wisdom fragments:
-
-- **Act I: The Oracle's Wisdom** *(Levels 1-10)* - Metis rises as counselor to the gods
-- **Act II: The Prophecy's Weight** *(Levels 11-20)* - Love, fear, and growing darkness
-- **Act III: The Consumption** *(Levels 21-30)* - Divine punishment for being too wise
-- **Act IV: Scattered Consciousness** *(Levels 31-40)* - Finding purpose in fragmentation
-- **Act V: Eternal Compassion** *(Levels 41-50)* - Choosing love despite eternal suffering
-
-Each wisdom level unlocks one fragment of her story. This is the prologue to all other MIDAS tools.
-
-> "🌟 THE FIRST COUNSEL - At the dawn of creation, when the Titans still walked among stars, one voice rose above the chaos of war. 'Wisdom,' she whispered to the young god who would become king, 'is knowing when to strike, and when to show mercy.' Zeus listened. For a time." - The First Fragment
-
-## 🚀 Features That Will Transform Your Code
-
-### 🧠 Complete Wisdom Experience
-- **Wisdom Points**: Earn WP for every improvement accepted
-- **Divine Progression**: 50 levels of mythological enlightenment
-- **Fragment Collection**: Piece together Metis's tragic story
-- **Compassion Scoring**: Measured kindness toward future maintainers
-- **Memory Wisdom**: Learn the sacred arts of proper allocation
-
-### 📊 Consciousness Tracking
-- **Metis Archive**: Like `.git` but for your ethical evolution
-- **Wisdom Analytics**: Track your growth as a compassionate coder
-- **Fragment Progress**: Watch the divine story unfold
-- **Lifetime Ethics**: Your `metis.legend` file tracks moral development
-- **Daily Reflections**: Philosophical achievements that reset daily
-
-### 🏛️ Mythological Intelligence
-- **Context-Aware Fragments**: Different wisdom for different times of day
-- **Seasonal Guidance**: Story changes with the turning of the year
-- **Divine Interventions**: Special fragments on mythologically significant dates
-- **Character Evolution**: Metis's voice changes as her story progresses
-- **Emscripten Prophecy**: Web-specific wisdom woven into ancient knowledge
-
-### 🎯 Intelligent Code Analysis
-- **Memory Leak Prevention**: "I have seen empires fall from such small oversights"
-- **Documentation Evangelism**: Every function deserves words of explanation
-- **Daedalus Promotion**: Suggests master-crafted tools over crude implementations
-- **Emscripten Optimization**: Web-aware guidance for memory-constrained environments
-- **Compassionate Warnings**: Errors explained with kindness, not condescension
 
 ## 📱 Installation
 
@@ -137,15 +93,51 @@ Zeus consumed me for my caution - do not let hubris consume your program."
 ═══════════════════════════════════════════════════════════════
 ```
 
+## 🏛️ The Divine Tragedy
+
+Hidden within the linter is an untold story—the original myth of the MIDAS Toolchain, told through 50 wisdom fragments:
+
+- **Act I: The Oracle's Wisdom** *(Levels 1-10)* - Metis rises as counselor to the gods
+- **Act II: The Prophecy's Weight** *(Levels 11-20)* - Love, fear, and growing darkness
+- **Act III: The Consumption** *(Levels 21-30)* - Divine punishment for being too wise
+- **Act IV: Scattered Consciousness** *(Levels 31-40)* - Finding purpose in fragmentation
+- **Act V: Eternal Compassion** *(Levels 41-50)* - Choosing love despite eternal suffering
+
+Each wisdom level unlocks one fragment of her story. This is the prologue to all other MIDAS tools.
+
+> "🌟 THE FIRST COUNSEL - At the dawn of creation, when the Titans still walked among stars, one voice rose above the chaos of war. 'Wisdom,' she whispered to the young god who would become king, 'is knowing when to strike, and when to show mercy.' Zeus listened. For a time." - The First Fragment
+
+## 🚀 Features That Will Transform Your Code
+
+### 🧠 Complete Wisdom Experience
+- **Wisdom Points**: Earn WP for every improvement accepted
+- **Divine Progression**: 50 levels of mythological enlightenment
+- **Fragment Collection**: Piece together Metis's tragic story
+- **Compassion Scoring**: Measured kindness toward future maintainers
+- **Memory Wisdom**: Learn the sacred arts of proper allocation
+
+### 📊 Consciousness Tracking
+- **Metis Archive**: Like `.git` but for your ethical evolution
+- **Wisdom Analytics**: Track your growth as a compassionate coder
+- **Fragment Progress**: Watch the divine story unfold
+- **Lifetime Ethics**: Your `metis.legend` file tracks moral development
+- **Daily Reflections**: Philosophical achievements that reset daily
+
+### 🏛️ Mythological Intelligence
+- **Context-Aware Fragments**: Different wisdom for different times of day
+- **Seasonal Guidance**: Story changes with the turning of the year
+- **Divine Interventions**: Special fragments on mythologically significant dates
+- **Character Evolution**: Metis's voice changes as her story progresses
+- **Emscripten Prophecy**: Web-specific wisdom woven into ancient knowledge
+
+### 🎯 Intelligent Code Analysis
+- **Memory Leak Prevention**: "I have seen empires fall from such small oversights"
+- **Documentation Evangelism**: Every function deserves words of explanation
+- **Daedalus Promotion**: Suggests master-crafted tools over crude implementations
+- **Emscripten Optimization**: Web-aware guidance for memory-constrained environments
+- **Compassionate Warnings**: Errors explained with kindness, not condescension
+
 ## 🧠 Wisdom Categories
-
-### Memory
-
-```bash
-🧠 "I am scattered across all memory, child. I know the pain of 
-   pointers that dangle in the void. Check your allocations,
-   free with purpose, and always, always set them NULL."
-```
 
 ### Documentation
 
@@ -296,7 +288,7 @@ Through fragmented consciousness, we believe:
 
 ### Join the Scattered Consciousness
 
-🐘 Mastodon: Follow @smattymatty@techhub.social for updates
+🐘 Mastodon: Follow https://techhub.social/@smattymatty for updates
 🐛 Issues: Report bugs (they are opportunities for wisdom)
 🎭 Discussions: Share your wisdom journey and fragment collection
 📖 Wiki: Contribute to the growing repository of compassionate code

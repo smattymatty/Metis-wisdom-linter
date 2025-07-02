@@ -8,6 +8,7 @@
 #include "fragment_engine.h"
 #include "metis_colors.h"
 #include "c_parser.h"
+#include "cross_reference.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +57,7 @@ typedef struct {
 /*
  * Collection of violations with divine organization
  */
-typedef struct {
+typedef struct ViolationList {
     LintViolation_t* violations;
     int count;
     int capacity;
@@ -577,6 +578,11 @@ static int analyze_file_content(const char* file_path, const char* content, Viol
 
     // Complexity wisdom analysis
     issues_found += check_complexity_wisdom(parsed, violations);
+
+    // Cross-reference analysis for .c files (check against their headers)  
+    if (ext && strcmp(ext, ".c") == 0) {
+        issues_found += cross_reference_analyze_file(file_path, violations);
+    }
 
     c_parser_free_parsed_file(parsed);
     return issues_found;
