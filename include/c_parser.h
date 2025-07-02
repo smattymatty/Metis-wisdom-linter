@@ -313,6 +313,26 @@ bool c_parser_has_documentation_for_function(ParsedFile_t* parsed, const char* f
  */
 bool c_parser_line_has_pattern(ParsedFile_t* parsed, int line, const char* pattern);
 
+/**
+ * @brief Represents an unsafe strcmp usage with dString_t->str.
+ */
+typedef struct {
+    int line;
+    int column;
+    bool is_dstring_vs_cstring;
+    bool is_dstring_vs_dstring;
+} UnsafeStrcmpUsage_t;
+
+/**
+ * @brief Detects unsafe strcmp usage with dString_t->str.
+ *
+ * @param parsed The parsed file structure.
+ * @param usages A pointer to a dynamically allocated array of UnsafeStrcmpUsage_t.
+ * @param count The number of usages found.
+ * @return true if unsafe usages were found, false otherwise.
+ */
+bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed, UnsafeStrcmpUsage_t** usages, int* count);
+
 /*
  * Analyze function complexity with mathematical precision for philosophical guidance
  *
@@ -447,4 +467,8 @@ char* c_parser_extract_function_description(ParsedFile_t* parsed, const char* fu
  */
 bool c_parser_implementation_matches_header(ParsedFile_t* parsed, const char* func_name, const char* expected_description);
 
+
+bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
+                                                 UnsafeStrcmpUsage_t** usages_out,
+                                                 int* count_out);
 #endif /* C_PARSER_H */

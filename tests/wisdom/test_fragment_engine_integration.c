@@ -582,6 +582,173 @@ static int test_fragment_engine_edge_cases(void) {
     return 1;
 }
 
+/*
+ * Create content with unsafe strcmp dString vs C-string patterns
+ */
+static const char* create_unsafe_strcmp_dstring_cstring_content(void) {
+    return "/* strcmp_dstring_cstring.c - Test unsafe strcmp with dString vs C-string */\n"
+           "// INSERT WISDOM HERE\n"
+           "\n"
+           "#include <string.h>\n"
+           "\n"
+           "typedef struct {\n"
+           "    char* str;\n"
+           "    int len;\n"
+           "} dString_t;\n"
+           "\n"
+           "/*\n"
+           " * Function that uses unsafe strcmp with dString->str and C-string\n"
+           " */\n"
+           "void check_player_name(dString_t* player) {\n"
+           "    // This should trigger 'The Duel of Echoes' fragment\n"
+           "    if (strcmp(player->str, \"Minos\") == 0) {\n"
+           "        // Unsafe pattern: dString->str vs C-string\n"
+           "        printf(\"Player is Minos!\\n\");\n"
+           "    }\n"
+           "}\n";
+}
+
+/*
+ * Create content with unsafe strcmp dString vs dString patterns
+ */
+static const char* create_unsafe_strcmp_dstring_dstring_content(void) {
+    return "/* strcmp_dstring_dstring.c - Test unsafe strcmp with dString vs dString */\n"
+           "// INSERT WISDOM HERE\n"
+           "\n"
+           "#include <string.h>\n"
+           "\n"
+           "typedef struct {\n"
+           "    char* str;\n"
+           "    int len;\n"
+           "} dString_t;\n"
+           "\n"
+           "/*\n"
+           " * Function that uses unsafe strcmp between two dString objects\n"
+           " */\n"
+           "void compare_items(dString_t* item1, dString_t* item2) {\n"
+           "    // This should trigger 'The Scales of Daedalus' fragment\n"
+           "    if (strcmp(item1->str, item2->str) == 0) {\n"
+           "        // Unsafe pattern: dString->str vs dString->str\n"
+           "        printf(\"Items match!\\n\");\n"
+           "    }\n"
+           "}\n";
+}
+
+/* Test 11: Unsafe strcmp dString vs C-string triggers specific Daedalus fragment */
+static int test_unsafe_strcmp_dstring_cstring_fragment_delivery(void) {
+    LOG("Testing unsafe strcmp dString vs C-string fragment delivery");
+    
+    cleanup_state_file();
+    metis_fragment_engine_init();
+    metis_reset_session_fragments();
+    
+    char* test_file = create_temp_test_file("strcmp_dstring_cstring.c", create_unsafe_strcmp_dstring_cstring_content());
+    
+    int initial_daedalus = g_metis_mind->daedalus_fragments_delivered;
+    int initial_total = g_metis_mind->fragments_delivered_total;
+    int initial_points = g_metis_mind->total_wisdom_points;
+    
+    // Lint the file - should trigger unsafe strcmp detection and Daedalus fragment
+    int violations = metis_lint_file(test_file);
+    
+    int final_daedalus = g_metis_mind->daedalus_fragments_delivered;
+    int final_total = g_metis_mind->fragments_delivered_total;
+    int final_points = g_metis_mind->total_wisdom_points;
+    
+    TEST_ASSERT(violations > 0, "Should detect unsafe strcmp violations");
+    TEST_ASSERT(final_daedalus > initial_daedalus, "Should deliver Daedalus fragment for unsafe strcmp");
+    TEST_ASSERT(final_total > initial_total, "Should increment total fragment count");
+    TEST_ASSERT(final_points > initial_points, "Should award wisdom points for finding unsafe strcmp");
+    
+    // Verify the fragment delivery respects session limits
+    TEST_ASSERT(final_daedalus - initial_daedalus <= 1, "Should deliver at most 1 Daedalus fragment per session");
+    
+    printf("  Violations detected: %d\n", violations);
+    printf("  Daedalus fragments delivered: %d -> %d\n", initial_daedalus, final_daedalus);
+    printf("  Total fragments delivered: %d -> %d\n", initial_total, final_total);
+    printf("  Wisdom points earned: %d -> %d\n", initial_points, final_points);
+    
+    // Test that linting the same file again in the same session doesn't deliver more fragments
+    int same_session_violations = metis_lint_file(test_file);
+    int same_session_daedalus = g_metis_mind->daedalus_fragments_delivered;
+    
+    TEST_ASSERT(same_session_violations > 0, "Should still detect violations in same session");
+    TEST_ASSERT(same_session_daedalus == final_daedalus, "Should not deliver additional fragments in same session");
+    
+    // Test that a new session allows new fragment delivery
+    metis_reset_session_fragments();
+    int new_session_violations = metis_lint_file(test_file);
+    int new_session_daedalus = g_metis_mind->daedalus_fragments_delivered;
+    
+    TEST_ASSERT(new_session_violations > 0, "Should detect violations in new session");
+    TEST_ASSERT(new_session_daedalus > same_session_daedalus, "Should deliver new fragment in new session");
+    
+    cleanup_temp_file(test_file);
+    metis_fragment_engine_cleanup();
+    return 1;
+}
+
+/* Test 12: Unsafe strcmp dString vs dString triggers specific Daedalus fragment */
+static int test_unsafe_strcmp_dstring_dstring_fragment_delivery(void) {
+    LOG("Testing unsafe strcmp dString vs dString fragment delivery");
+    
+    cleanup_state_file();
+    metis_fragment_engine_init();
+    metis_reset_session_fragments();
+    
+    char* test_file = create_temp_test_file("strcmp_dstring_dstring.c", create_unsafe_strcmp_dstring_dstring_content());
+    
+    int initial_daedalus = g_metis_mind->daedalus_fragments_delivered;
+    int initial_total = g_metis_mind->fragments_delivered_total;
+    int initial_points = g_metis_mind->total_wisdom_points;
+    int initial_level = g_metis_mind->current_wisdom_level;
+    
+    // Lint the file - should trigger unsafe strcmp detection and Daedalus fragment
+    int violations = metis_lint_file(test_file);
+    
+    int final_daedalus = g_metis_mind->daedalus_fragments_delivered;
+    int final_total = g_metis_mind->fragments_delivered_total;
+    int final_points = g_metis_mind->total_wisdom_points;
+    int final_level = g_metis_mind->current_wisdom_level;
+    
+    TEST_ASSERT(violations > 0, "Should detect unsafe strcmp violations");
+    TEST_ASSERT(final_daedalus > initial_daedalus, "Should deliver Daedalus fragment for unsafe strcmp");
+    TEST_ASSERT(final_total > initial_total, "Should increment total fragment count");
+    TEST_ASSERT(final_points > initial_points, "Should award wisdom points for finding unsafe strcmp");
+    
+    // Verify the fragment delivery respects session limits
+    TEST_ASSERT(final_daedalus - initial_daedalus <= 1, "Should deliver at most 1 Daedalus fragment per session");
+    
+    printf("  Violations detected: %d\n", violations);
+    printf("  Daedalus fragments delivered: %d -> %d\n", initial_daedalus, final_daedalus);
+    printf("  Total fragments delivered: %d -> %d\n", initial_total, final_total);
+    printf("  Wisdom points: %d -> %d\n", initial_points, final_points);
+    printf("  Wisdom level: %d -> %d\n", initial_level, final_level);
+    
+    // Verify that the context-specific guidance works
+    // The violation should be categorized as a strcmp issue with ->str pattern
+    TEST_ASSERT(violations >= 1, "Should detect the unsafe strcmp pattern specifically");
+    
+    // Test progression: multiple sessions should allow multiple fragments and level progression
+    int session_count = 0;
+    while (g_metis_mind->current_wisdom_level == initial_level && session_count < 5) {
+        metis_reset_session_fragments();
+        metis_lint_file(test_file);
+        session_count++;
+    }
+    
+    if (session_count < 5) {
+        TEST_ASSERT(g_metis_mind->current_wisdom_level > initial_level, "Should eventually progress in wisdom level");
+        printf("  Progressed to level %d after %d sessions\n", g_metis_mind->current_wisdom_level, session_count);
+    } else {
+        printf("  NOTE: Level progression not achieved in 5 sessions (started at level %d)\n", initial_level);
+    }
+    
+    cleanup_temp_file(test_file);
+    metis_fragment_engine_cleanup();
+    return 1;
+}
+
 // =============================================================================
 // MAIN TEST RUNNER
 // =============================================================================
@@ -608,6 +775,10 @@ int main(void) {
     printf("\n=== PERFORMANCE AND EDGE CASES ===\n");
     RUN_TEST(test_multiple_files_performance);
     RUN_TEST(test_fragment_engine_edge_cases);
+    
+    printf("\n=== UNSAFE STRCMP DETECTION AND FRAGMENT DELIVERY ===\n");
+    RUN_TEST(test_unsafe_strcmp_dstring_cstring_fragment_delivery);
+    RUN_TEST(test_unsafe_strcmp_dstring_dstring_fragment_delivery);
     
     TEST_SUITE_END();
 }

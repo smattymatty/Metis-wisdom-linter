@@ -249,6 +249,9 @@ static int check_daedalus_with_parser(ParsedFile_t* parsed, ViolationList_t* vio
                     suggestion = "Use d_Array for automatic growth and bounds checking";
                 } else if (strcmp(token->value, "gets") == 0) {
                     suggestion = "Use d_StringInput() for safe input reading";
+                } else if (strcmp(token->value, "strcmp") == 0) {
+                    // This will be handled by a more specific check later
+                    suggestion = "Consider using d_CompareStrings() or d_CompareStringToCString()";
                 } else {
                     suggestion = "Consider using Daedalus library alternatives for safety";
                 }
@@ -573,6 +576,30 @@ static int analyze_file_content(const char* file_path, const char* content, Viol
     // Enhanced Daedalus opportunities detection
     issues_found += check_daedalus_with_parser(parsed, violations);
 
+    // New: Check for unsafe strcmp(dString_t->str, ...) usage
+    UnsafeStrcmpUsage_t* unsafe_strcmp_usages = NULL;
+    int unsafe_strcmp_count = 0;
+    if (c_parser_detect_unsafe_strcmp_dstring_usage(parsed, &unsafe_strcmp_usages, &unsafe_strcmp_count)) {
+        for (int i = 0; i < unsafe_strcmp_count; i++) {
+            char message[256];
+            char suggestion[512];
+            if (unsafe_strcmp_usages[i].is_dstring_vs_cstring) {
+                snprintf(message, sizeof(message), "Unsafe `strcmp` with `dString_t->str` and C-string detected");
+                snprintf(suggestion, sizeof(suggestion), "Replace `strcmp(variable->str, \"a c-string\")` with `d_CompareStringToCString(variable, \"a c-string\")`");
+            } else if (unsafe_strcmp_usages[i].is_dstring_vs_dstring) {
+                snprintf(message, sizeof(message), "Unsafe `strcmp` between two `dString_t` objects detected");
+                snprintf(suggestion, sizeof(suggestion), "Replace `strcmp(variable1->str, variable2->str)` with `d_CompareStrings(variable1, variable2)`");
+            } else {
+                snprintf(message, sizeof(message), "Unsafe `strcmp` usage with `dString_t->str` detected");
+                snprintf(suggestion, sizeof(suggestion), "Consider using `d_CompareStrings()` or `d_CompareStringToCString()`");
+            }
+            add_violation(violations, file_path, unsafe_strcmp_usages[i].line, unsafe_strcmp_usages[i].column,
+                          message, suggestion, DAEDALUS_SUGGESTION, SEVERITY_WARNING);
+            issues_found++;
+        }
+        free(unsafe_strcmp_usages);
+    }
+
     // Enhanced philosophical wisdom analysis
     issues_found += check_philosophy_with_parser(parsed, violations);
 
@@ -681,14 +708,15 @@ int metis_lint_file(const char* file_path) {
     metis_colors_enable(true);
     metis_fragment_engine_init();
 
-    printf("%s🔍 Analyzing:%s %s%s%s\n",
+    printf("%s🔍 Analyzing:%s %s%s%s\n", // Replaced \u{1f50d} with 🔍
            METIS_INFO, METIS_RESET,
            METIS_CLICKABLE_LINK, file_path, METIS_RESET);
 
     // Read file content
     char* content = read_file_content(file_path);
     if (!content) {
-        printf("%s💀 Error:%s Cannot read file %s\n",
+        // Line 718
+        printf("%s💀 Error:%s Cannot read file %s\n", // Replaced \u{1f480} with 💀
                METIS_ERROR, METIS_RESET, file_path);
         return -1;
     }
@@ -708,14 +736,15 @@ int metis_lint_file(const char* file_path) {
     int violation_count = violations->count;
 
     if (violation_count == 0) {
-        printf("%s✨ Divine analysis complete:%s No issues found in %s%s%s\n",
+        printf("%s✨ Divine analysis complete:%s No issues found in %s%s%s\n", // Replaced \u{2728} with ✨
                METIS_SUCCESS, METIS_RESET,
                METIS_CLICKABLE_LINK, file_path, METIS_RESET);
 
         // Deliver philosophical fragment for perfect code
         metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, "perfect code achieved");
     } else {
-        printf("%s📋 Found %d issues in %s:%s\n",
+        // Line 745
+        printf("%s📋 Found %d issues in %s:%s\n", // Replaced \u{1f4cb} with 📋
                METIS_WARNING, violation_count, file_path, METIS_RESET);
 
         for (int i = 0; i < violation_count; i++) {
@@ -723,15 +752,16 @@ int metis_lint_file(const char* file_path) {
 
             // Divine clickable link format: file:line:column
             printf("%s%s:%d:%d:%s %s[%s%s%s]%s %s%s%s\n",
-                   METIS_CLICKABLE_LINK, v->file_path, v->line_number, v->column, METIS_RESET,
-                   get_severity_color(v->severity),
-                   get_type_color(v->type),
-                   get_type_name(v->type),
-                   METIS_RESET, get_severity_color(v->severity), METIS_RESET,
-                   METIS_TEXT_SECONDARY, v->violation_message, METIS_RESET);
+            METIS_CLICKABLE_LINK, v->file_path, v->line_number, v->column, METIS_RESET, // File info + reset
+            get_severity_color(v->severity),                                           // Severity color start
+            get_type_color(v->type), get_type_name(v->type), METIS_RESET,              // Type info + reset
+            get_severity_color(v->severity),                                           // Severity color start again?
+            METIS_RESET,                                                               // Reset again?
+            METIS_TEXT_SECONDARY, v->violation_message, METIS_RESET);                  // Message info
 
             if (v->suggestion) {
-                printf("    %s💡 %s%s%s\n",
+                // Line 761
+                printf("    %s💡 %s%s%s\n", // Replaced \u{1f4a1} with 💡
                        METIS_ACCENT, METIS_TEXT_MUTED, v->suggestion, METIS_RESET);
             }
         }
@@ -777,8 +807,14 @@ int metis_lint_file(const char* file_path) {
             for (int i = 0; i < violation_count; i++) {
                 LintViolation_t* v = &violations->violations[i];
                 if (v->type == DAEDALUS_SUGGESTION) {
-                    snprintf(context, sizeof(context), "%s at %s:%d:%d", 
-                             v->violation_message, v->file_path, v->line_number, v->column);
+                    // For strcmp, the message already contains the context
+                    if (strstr(v->violation_message, "`strcmp`")) {
+                        snprintf(context, sizeof(context), "%s at %s:%d:%d", 
+                                 v->violation_message, v->file_path, v->line_number, v->column);
+                    } else {
+                        snprintf(context, sizeof(context), "%s at %s:%d:%d", 
+                                 v->violation_message, v->file_path, v->line_number, v->column);
+                    }
                     break;
                 }
             }
@@ -866,7 +902,7 @@ int metis_lint_directory(const char* dir_path) {
     int files_analyzed = 0;
     struct dirent* entry;
 
-    printf("%s🏛️ Analyzing directory:%s %s%s%s\n",
+    printf("%s🏛️ Analyzing directory:%s %s%s%s\n", // Replaced \u{1f3db}\ufe0f with 🏛️
            METIS_INFO, METIS_RESET,
            METIS_CLICKABLE_LINK, dir_path, METIS_RESET);
 
@@ -905,7 +941,7 @@ int metis_lint_directory(const char* dir_path) {
 
     // Summary for directory
     if (files_analyzed > 0) {
-        printf("\n%s📊 Directory summary:%s %d files analyzed, %d total issues\n",
+        printf("\n%s📊 Directory summary:%s %d files analyzed, %d total issues\n", // Replaced \u{1f4ca} with 📊
                METIS_INFO, METIS_RESET, files_analyzed, total_violations);
     }
 

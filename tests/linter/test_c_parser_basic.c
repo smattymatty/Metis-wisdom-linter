@@ -949,6 +949,148 @@ static int test_null_pointer_edge_cases(void) {
     return 1;
 }
 
+/*
+ * Test unsafe strcmp detection with dString_t->str patterns
+ */
+static int test_unsafe_strcmp_detection(void) {
+    LOG("DEBUG: Testing unsafe strcmp detection with dString_t patterns");
+    
+    // Create test content with unsafe strcmp patterns
+    const char* unsafe_strcmp_code = 
+        "/* test_strcmp.c - Test file for unsafe strcmp detection */\n"
+        "// INSERT WISDOM HERE\n"
+        "\n"
+        "#include <string.h>\n"
+        "\n"
+        "typedef struct {\n"
+        "    char* str;\n"
+        "    int len;\n"
+        "} dString_t;\n"
+        "\n"
+        "/*\n"
+        " * Test function with unsafe strcmp usage\n"
+        " */\n"
+        "void test_unsafe_strcmp(dString_t* item, dString_t* other) {\n"
+        "    // Pattern 1: dString vs C-string (should trigger detection)\n"
+        "    if (strcmp(item->str, \"some_id\") == 0) {\n"
+        "        // This should be detected\n"
+        "    }\n"
+        "    \n"
+        "    // Pattern 2: dString vs dString (should trigger detection)\n"
+        "    if (strcmp(item->str, other->str) == 0) {\n"
+        "        // This should also be detected\n"
+        "    }\n"
+        "    \n"
+        "    // Safe patterns (should NOT trigger)\n"
+        "    if (strcmp(\"hello\", \"world\") == 0) {\n"
+        "        // Regular C strings - safe\n"
+        "    }\n"
+        "}\n";
+    
+    ParsedFile_t* parsed = c_parser_parse_content(unsafe_strcmp_code, "test_strcmp.c");
+    TEST_ASSERT(parsed != NULL, "Parser should successfully parse strcmp test content");
+    
+    printf("Function count: %d\n", parsed->function_count);
+    printf("Token count: %d\n", parsed->token_count);
+    
+    // Test the unsafe strcmp detection function
+    UnsafeStrcmpUsage_t* usages = NULL;
+    int usage_count = 0;
+    
+    bool found_unsafe = c_parser_detect_unsafe_strcmp_dstring_usage(parsed, &usages, &usage_count);
+    
+    printf("Found unsafe strcmp usages: %s\n", found_unsafe ? "true" : "false");
+    printf("Usage count: %d\n", usage_count);
+    
+    TEST_ASSERT(found_unsafe, "Should detect unsafe strcmp usage patterns");
+    TEST_ASSERT(usage_count == 2, "Should detect exactly 2 unsafe strcmp patterns");
+    
+    if (usages && usage_count > 0) {
+        for (int i = 0; i < usage_count; i++) {
+            printf("Usage %d: line %d, column %d\n", i, usages[i].line, usages[i].column);
+            printf("  dString vs C-string: %s\n", usages[i].is_dstring_vs_cstring ? "true" : "false");
+            printf("  dString vs dString: %s\n", usages[i].is_dstring_vs_dstring ? "true" : "false");
+        }
+        
+        // Verify the patterns are correctly identified
+        bool found_dstring_vs_cstring = false;
+        bool found_dstring_vs_dstring = false;
+        
+        for (int i = 0; i < usage_count; i++) {
+            if (usages[i].is_dstring_vs_cstring) found_dstring_vs_cstring = true;
+            if (usages[i].is_dstring_vs_dstring) found_dstring_vs_dstring = true;
+        }
+        
+        TEST_ASSERT(found_dstring_vs_cstring, "Should detect dString vs C-string pattern");
+        TEST_ASSERT(found_dstring_vs_dstring, "Should detect dString vs dString pattern");
+        
+        free(usages);
+    }
+    
+    c_parser_free_parsed_file(parsed);
+    return 1;
+}
+
+/*
+ * Test that safe strcmp patterns are NOT detected as unsafe
+ */
+static int test_safe_strcmp_not_detected(void) {
+    LOG("DEBUG: Testing that safe strcmp patterns are not flagged as unsafe");
+    
+    // Create test content with only safe strcmp patterns
+    const char* safe_strcmp_code = 
+        "/* safe_strcmp.c - Test file with only safe strcmp usage */\n"
+        "// INSERT WISDOM HERE\n"
+        "\n"
+        "#include <string.h>\n"
+        "\n"
+        "/*\n"
+        " * Test function with only safe strcmp usage\n"
+        " */\n"
+        "void test_safe_strcmp(void) {\n"
+        "    char* str1 = \"hello\";\n"
+        "    char* str2 = \"world\";\n"
+        "    \n"
+        "    // All safe patterns - should NOT trigger detection\n"
+        "    if (strcmp(str1, str2) == 0) {\n"
+        "        // Regular C strings - safe\n"
+        "    }\n"
+        "    \n"
+        "    if (strcmp(\"literal1\", \"literal2\") == 0) {\n"
+        "        // String literals - safe\n"
+        "    }\n"
+        "    \n"
+        "    if (strcmp(str1, \"literal\") == 0) {\n"
+        "        // C string vs literal - safe\n"
+        "    }\n"
+        "}\n";
+    
+    ParsedFile_t* parsed = c_parser_parse_content(safe_strcmp_code, "safe_strcmp.c");
+    TEST_ASSERT(parsed != NULL, "Parser should successfully parse safe strcmp content");
+    
+    printf("Function count: %d\n", parsed->function_count);
+    printf("Token count: %d\n", parsed->token_count);
+    
+    // Test the unsafe strcmp detection function
+    UnsafeStrcmpUsage_t* usages = NULL;
+    int usage_count = 0;
+    
+    bool found_unsafe = c_parser_detect_unsafe_strcmp_dstring_usage(parsed, &usages, &usage_count);
+    
+    printf("Found unsafe strcmp usages: %s\n", found_unsafe ? "true" : "false");
+    printf("Usage count: %d\n", usage_count);
+    
+    TEST_ASSERT(!found_unsafe, "Should NOT detect any unsafe strcmp usage in safe code");
+    TEST_ASSERT(usage_count == 0, "Should find zero unsafe strcmp patterns");
+    
+    if (usages) {
+        free(usages);
+    }
+    
+    c_parser_free_parsed_file(parsed);
+    return 1;
+}
+
 // =============================================================================
 // MAIN TEST RUNNER
 // =============================================================================
@@ -997,6 +1139,10 @@ int main(void) {
     // Bug reproduction tests
     RUN_TEST(test_inappropriate_content_detection_bug);
     RUN_TEST(test_fixed_comment_detection_bug);
+    
+    // Unsafe strcmp detection tests
+    RUN_TEST(test_unsafe_strcmp_detection);
+    RUN_TEST(test_safe_strcmp_not_detected);
     
     TEST_SUITE_END();
 }

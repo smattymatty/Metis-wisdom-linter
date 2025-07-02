@@ -1901,3 +1901,166 @@ bool c_parser_implementation_matches_header(ParsedFile_t* parsed, const char* fu
     free(actual_desc);
     return matches;
 }
+
+// Helper to check if a token represents "dString_t" type
+// This function needs to be aware of your AST or type system.
+// For a simple token-based check, we'll look for `dString_t` identifiers.
+static bool is_dstring_type(const char* type_name) {
+    return strcmp(type_name, "dString_t") == 0;
+}
+
+// Helper to determine if a token sequence looks like 'variable->str' and if 'variable' is a dString_t*
+// This is a simplified check based on token values. A full AST would be more robust.
+// Requires access to symbol table or type information, which is complex for a simple token parser.
+// For this problem, we'll make a pragmatic assumption: if we see "->str", we *assume* the left side
+// is a dString_t* for the purpose of flagging, as that's the common unsafe pattern.
+// A more advanced parser would verify the actual type of 'variable'.
+static bool is_dstring_str_access(ParsedFile_t* parsed, int token_idx) {
+    // Check for `identifier` -> `str` pattern
+    if (token_idx + 2 < parsed->token_count &&
+        parsed->tokens[token_idx].type == TOKEN_IDENTIFIER &&       // e.g., 'variable'
+        parsed->tokens[token_idx + 1].type == TOKEN_OPERATOR &&     // '->'
+        strcmp(parsed->tokens[token_idx + 1].value, "->") == 0 &&
+        parsed->tokens[token_idx + 2].type == TOKEN_IDENTIFIER &&   // 'str'
+        strcmp(parsed->tokens[token_idx + 2].value, "str") == 0)
+    {
+        // This pattern strongly suggests a dString_t->str access.
+        // A truly robust check would involve symbol table lookups to confirm 'variable' is dString_t*.
+        // For the scope of this linter, detecting the `->str` on any identifier is a good heuristic
+        // for flagging the common unsafe pattern.
+        return true;
+    }
+    return false;
+}
+
+// Helper to determine if a token is a string literal (e.g., "hello")
+static bool is_string_literal(const Token_t* token) {
+    return token->type == TOKEN_STRING;
+}
+
+// Helper to find the end of a function call's arguments.
+// This function will look for the matching ')' for a given '('
+static int find_matching_paren(ParsedFile_t* parsed, int start_idx) {
+    int paren_count = 0;
+    for (int i = start_idx; i < parsed->token_count; ++i) {
+        if (parsed->tokens[i].type == TOKEN_PUNCTUATION) {
+            if (strcmp(parsed->tokens[i].value, "(") == 0) {
+                paren_count++;
+            } else if (strcmp(parsed->tokens[i].value, ")") == 0) {
+                paren_count--;
+                if (paren_count == 0) {
+                    return i; // Found matching ')'
+                }
+            }
+        }
+    }
+    return -1; // No matching ')' found
+}
+
+/*
+ * Detects unsafe strcmp(dString_t->str, ...) usages.
+ * Populates usages_out with a dynamically allocated array of found usages.
+ * Returns true if any unsafe usages are found, false otherwise.
+ */
+bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
+                                                 UnsafeStrcmpUsage_t** usages_out,
+                                                 int* count_out) {
+    if (!parsed || !usages_out || !count_out) {
+        return false;
+    }
+
+    *usages_out = NULL;
+    *count_out = 0;
+
+    int current_capacity = 10;
+    UnsafeStrcmpUsage_t* found_usages = malloc(sizeof(UnsafeStrcmpUsage_t) * current_capacity);
+    if (!found_usages) {
+        return false; // Memory allocation failed
+    }
+
+    for (int i = 0; i < parsed->token_count; ++i) {
+        Token_t* current_token = &parsed->tokens[i];
+
+        // 1. Look for `strcmp` function call
+        if (current_token->type == TOKEN_IDENTIFIER && strcmp(current_token->value, "strcmp") == 0) {
+            // Check if the next token is an opening parenthesis, indicating a function call
+            if (i + 1 < parsed->token_count &&
+                parsed->tokens[i + 1].type == TOKEN_PUNCTUATION &&
+                strcmp(parsed->tokens[i + 1].value, "(") == 0) {
+
+                int start_of_args_idx = i + 2; // Token after '('
+
+                // Find the end of the strcmp call (matching ')')
+                int end_of_call_idx = find_matching_paren(parsed, i + 1);
+                if (end_of_call_idx == -1) {
+                    continue; // Malformed call, skip
+                }
+
+                // Try to find the comma separating arguments
+                int comma_idx = -1;
+                for (int j = start_of_args_idx; j < end_of_call_idx; ++j) {
+                    if (parsed->tokens[j].type == TOKEN_PUNCTUATION && strcmp(parsed->tokens[j].value, ",") == 0) {
+                        comma_idx = j;
+                        break;
+                    }
+                }
+
+                if (comma_idx == -1) {
+                    continue; // `strcmp` expects two arguments, skip if comma not found
+                }
+
+                // Analyze Argument 1 (from start_of_args_idx to comma_idx - 1)
+                // We'll check the token right before the comma or the ')' if no comma for the first arg
+                bool arg1_is_dstring_str = is_dstring_str_access(parsed, start_of_args_idx);
+                // For string literals, it might be the token at start_of_args_idx itself
+                bool arg1_is_cstring_literal = is_string_literal(&parsed->tokens[start_of_args_idx]);
+
+                // Analyze Argument 2 (from comma_idx + 1 to end_of_call_idx - 1)
+                // We'll check the token right after the comma
+                bool arg2_is_dstring_str = is_dstring_str_access(parsed, comma_idx + 1);
+                bool arg2_is_cstring_literal = is_string_literal(&parsed->tokens[comma_idx + 1]);
+
+                // Check for unsafe patterns
+                if (arg1_is_dstring_str || arg2_is_dstring_str) {
+                    // We found at least one `->str` access in `strcmp` arguments.
+                    // Now determine the specific type of unsafe usage.
+
+                    bool is_dstring_vs_cstring = false;
+                    bool is_dstring_vs_dstring = false;
+
+                    if (arg1_is_dstring_str && (arg2_is_cstring_literal || !arg2_is_dstring_str)) {
+                        is_dstring_vs_cstring = true; // Arg1 is dstring->str, Arg2 is not dstring->str (likely c-string)
+                    } else if (arg2_is_dstring_str && (arg1_is_cstring_literal || !arg1_is_dstring_str)) {
+                        is_dstring_vs_cstring = true; // Arg2 is dstring->str, Arg1 is not dstring->str (likely c-string)
+                    } else if (arg1_is_dstring_str && arg2_is_dstring_str) {
+                        is_dstring_vs_dstring = true; // Both are dstring->str
+                    }
+
+                    // Add the violation
+                    if (is_dstring_vs_cstring || is_dstring_vs_dstring) {
+                        if (*count_out >= current_capacity) {
+                            current_capacity *= 2;
+                            UnsafeStrcmpUsage_t* new_usages = realloc(found_usages, sizeof(UnsafeStrcmpUsage_t) * current_capacity);
+                            if (!new_usages) {
+                                free(found_usages);
+                                *usages_out = NULL;
+                                *count_out = 0;
+                                return false; // Reallocation failed
+                            }
+                            found_usages = new_usages;
+                        }
+
+                        found_usages[*count_out].line = current_token->line;
+                        found_usages[*count_out].column = current_token->column;
+                        found_usages[*count_out].is_dstring_vs_cstring = is_dstring_vs_cstring;
+                        found_usages[*count_out].is_dstring_vs_dstring = is_dstring_vs_dstring;
+                        (*count_out)++;
+                    }
+                }
+            }
+        }
+    }
+
+    *usages_out = found_usages;
+    return *count_out > 0;
+}

@@ -1,6 +1,5 @@
-/*
- * METIS WISDOM LINTER - Configuration System
- */
+// src/config/metis_config.c - Configuration file for the Metis linter
+// INSERT WISDOM HERE
 
 #define _POSIX_C_SOURCE 200809L  // For strdup
 
