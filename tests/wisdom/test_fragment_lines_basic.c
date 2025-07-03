@@ -112,6 +112,74 @@ static int debug_test_parse_story_fragment(void) {
     return 1;
 }
 
+/*
+ * Test the enhanced contextual fragment selection for "Duel of Echoes"
+ */
+static int test_contextual_fragment_duel_of_echoes(void) {
+    LOG("Testing contextual fragment selection for Duel of Echoes");
+    
+    const char* violation_type = "unsafe_strcmp_dstring_cstring";
+    const ContextualFragment_t* fragment = select_contextual_fragment(violation_type);
+    
+    TEST_ASSERT(fragment != NULL, "Should find contextual fragment for dstring vs cstring strcmp");
+    TEST_ASSERT(strcmp(fragment->fragment_id, "duel_of_echoes") == 0, "Should select 'duel_of_echoes' fragment");
+    TEST_ASSERT(strstr(fragment->title, "Duel of Echoes") != NULL, "Title should contain 'Duel of Echoes'");
+    TEST_ASSERT(strstr(fragment->philosophical_quote, "arena of strings") != NULL, "Should have philosophical quote about strings");
+    TEST_ASSERT(strstr(fragment->context_template, "{FUNCTION_NAME}") != NULL, "Context template should have function name placeholder");
+    TEST_ASSERT(strstr(fragment->daedalus_template, "d_CompareStringToCString") != NULL, "Daedalus template should recommend d_CompareStringToCString");
+    TEST_ASSERT(fragment->wisdom_points == 15, "Should award 15 wisdom points");
+    
+    return 1;
+}
+
+/*
+ * Test the enhanced contextual fragment selection for "Scales of Daedalus"
+ */
+static int test_contextual_fragment_scales_of_daedalus(void) {
+    LOG("Testing contextual fragment selection for Scales of Daedalus");
+    
+    const char* violation_type = "unsafe_strcmp_dstring_dstring";
+    const ContextualFragment_t* fragment = select_contextual_fragment(violation_type);
+    
+    TEST_ASSERT(fragment != NULL, "Should find contextual fragment for dstring vs dstring strcmp");
+    TEST_ASSERT(strcmp(fragment->fragment_id, "scales_of_daedalus") == 0, "Should select 'scales_of_daedalus' fragment");
+    TEST_ASSERT(strstr(fragment->title, "Scales of Daedalus") != NULL, "Title should contain 'Scales of Daedalus'");
+    TEST_ASSERT(strstr(fragment->philosophical_quote, "True balance") != NULL, "Should have philosophical quote about balance");
+    TEST_ASSERT(strstr(fragment->context_template, "{VARIABLE1}") != NULL, "Context template should have variable1 placeholder");
+    TEST_ASSERT(strstr(fragment->context_template, "{VARIABLE2}") != NULL, "Context template should have variable2 placeholder");
+    TEST_ASSERT(strstr(fragment->daedalus_template, "d_CompareStrings") != NULL, "Daedalus template should recommend d_CompareStrings");
+    TEST_ASSERT(fragment->wisdom_points == 18, "Should award 18 wisdom points");
+    
+    return 1;
+}
+
+/*
+ * Test template substitution functionality
+ */
+static int test_template_substitution(void) {
+    LOG("Testing template substitution");
+    
+    const char* template = "In function {FUNCTION_NAME}, comparing {VARIABLE1} with {VARIABLE2}";
+    FragmentContext_t context = {
+        .variable1 = "player->str",
+        .variable2 = "\"Minos\"",
+        .function_name = "check_player_name",
+        .file_name = "test.c",
+        .violation_type = "unsafe_strcmp_dstring_cstring"
+    };
+    
+    char* result = substitute_template(template, &context);
+    
+    TEST_ASSERT(result != NULL, "Template substitution should not return NULL");
+    TEST_ASSERT(strstr(result, "check_player_name") != NULL, "Should substitute function name");
+    TEST_ASSERT(strstr(result, "player->str") != NULL, "Should substitute variable1");
+    TEST_ASSERT(strstr(result, "\"Minos\"") != NULL, "Should substitute variable2");
+    TEST_ASSERT(strstr(result, "{FUNCTION_NAME}") == NULL, "Should not contain unsubstituted placeholders");
+    
+    free(result);
+    return 1;
+}
+
 
 // Main test runner
 int main(void) {
@@ -122,6 +190,9 @@ int main(void) {
     RUN_TEST(test_guidance_null_context);
     RUN_TEST(debug_test_get_act_fragment);
     RUN_TEST(debug_test_parse_story_fragment);
+    RUN_TEST(test_contextual_fragment_duel_of_echoes);
+    RUN_TEST(test_contextual_fragment_scales_of_daedalus);
+    RUN_TEST(test_template_substitution);
 
     TEST_SUITE_END();
 }

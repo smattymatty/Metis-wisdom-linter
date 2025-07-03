@@ -147,7 +147,7 @@ static int check_file_headers_with_parser(ParsedFile_t* parsed, ViolationList_t*
     if (!c_parser_has_proper_filename_header(parsed, filename)) {
         char message[256];
         snprintf(message, sizeof(message),
-                "File missing proper filename header comment on first line");
+                "File missing proper filename comment on first line");
 
         char suggestion[512];
         snprintf(suggestion, sizeof(suggestion),
@@ -158,21 +158,20 @@ static int check_file_headers_with_parser(ParsedFile_t* parsed, ViolationList_t*
         issues_found++;
     }
 
-    // Check for proper wisdom header (second line)
-    if (!c_parser_has_proper_wisdom_header(parsed)) {
+    // Check for proper purpose line (second line) - FIXED LOGIC
+    if (!c_parser_has_proper_purpose_line(parsed)) {
         char message[256];
         snprintf(message, sizeof(message),
-                "File missing proper wisdom fragment comment on second line");
+                "File missing meaningful purpose line comment on second line");
 
         add_violation(violations, file_path, 2, 1, message,
-                     "Add: // INSERT WISDOM HERE (or a proper Metis fragment)",
+                     "Add a meaningful comment describing the file's purpose, any other files it integrates with, and any other relevant information",
                      HEADER_VIOLATION, SEVERITY_WARNING);
         issues_found++;
     }
 
     return issues_found;
 }
-
 /*
  * Check function documentation with parser precision
  */
@@ -238,20 +237,83 @@ static int check_daedalus_with_parser(ParsedFile_t* parsed, ViolationList_t* vio
 
                 const char* suggestion = NULL;
 
-                // Provide specific Daedalus suggestions
-                if (strcmp(token->value, "strcpy") == 0) {
-                    suggestion = "Use d_StringCopy() for bounds-checked copying";
+                // Provide specific Daedalus suggestions with divine precision
+                if (strcmp(token->value, "malloc") == 0) {
+                    suggestion = "Use d_InitArray() for dynamic growth or d_InitStaticArray() for fixed capacity";
+                } else if (strcmp(token->value, "realloc") == 0) {
+                    suggestion = "Use d_ResizeArray() or d_GrowArray() for safe memory expansion";
+                } else if (strcmp(token->value, "free") == 0) {
+                    suggestion = "Use d_DestroyArray() or d_DestroyStaticArray() for automatic cleanup";
+                } else if (strcmp(token->value, "calloc") == 0) {
+                    suggestion = "Use d_InitArray() which zero-initializes elements automatically";
+                    
+                // String Function Replacements
+                } else if (strcmp(token->value, "strcpy") == 0) {
+                    suggestion = "Use d_SetString() or d_AppendString() for safe string assignment";
+                } else if (strcmp(token->value, "strncpy") == 0) {
+                    suggestion = "Use d_SetString() or d_AppendStringN() for bounded string copying";
                 } else if (strcmp(token->value, "strcat") == 0) {
-                    suggestion = "Use d_StringAppend() for safe concatenation";
-                } else if (strcmp(token->value, "sprintf") == 0) {
-                    suggestion = "Use d_StringFormat() for buffer-safe formatting";
-                } else if (strcmp(token->value, "malloc") == 0 || strcmp(token->value, "realloc") == 0) {
-                    suggestion = "Use d_Array for automatic growth and bounds checking";
-                } else if (strcmp(token->value, "gets") == 0) {
-                    suggestion = "Use d_StringInput() for safe input reading";
+                    suggestion = "Use d_AppendString() for safe string concatenation";
+                } else if (strcmp(token->value, "strncat") == 0) {
+                    suggestion = "Use d_AppendStringN() for bounded string concatenation";
                 } else if (strcmp(token->value, "strcmp") == 0) {
-                    // This will be handled by a more specific check later
-                    suggestion = "Consider using d_CompareStrings() or d_CompareStringToCString()";
+                    suggestion = "Use d_CompareStrings() or d_CompareStringToCString() for dString_t objects";
+                } else if (strcmp(token->value, "strncmp") == 0) {
+                    suggestion = "Use d_CompareStrings() with d_SliceString() for bounded comparison";
+                } else if (strcmp(token->value, "strlen") == 0) {
+                    suggestion = "Use d_GetStringLength() for dString_t objects";
+                } else if (strcmp(token->value, "strdup") == 0) {
+                    suggestion = "Create new dString_t with d_InitString() and d_SetString()";
+
+                // Printf Family Replacements  
+                } else if (strcmp(token->value, "printf") == 0) {
+                    suggestion = "Use d_LogInfoF() for structured, filterable output";
+                } else if (strcmp(token->value, "fprintf") == 0) {
+                    suggestion = "Use d_LogInfoF() with file handlers or d_FormatString() to dString_t";
+                } else if (strcmp(token->value, "sprintf") == 0) {
+                    suggestion = "Use d_FormatString() for safe string formatting";
+                } else if (strcmp(token->value, "snprintf") == 0) {
+                    suggestion = "Use d_FormatString() which automatically manages buffer size";
+                } else if (strcmp(token->value, "vprintf") == 0) {
+                    suggestion = "Use Daedalus logging system with d_LogF() variants";
+                } else if (strcmp(token->value, "vsprintf") == 0) {
+                    suggestion = "Use d_FormatString() which handles variadic arguments safely";
+
+                // Input Function Replacements
+                } else if (strcmp(token->value, "gets") == 0) {
+                    suggestion = "Use d_AppendString() with safe input validation";
+                } else if (strcmp(token->value, "fgets") == 0) {
+                    suggestion = "Use d_CreateStringFromFile() or d_AppendString() with bounds checking";
+                } else if (strcmp(token->value, "scanf") == 0) {
+                    suggestion = "Use d_LogDebugF() for debugging and proper input validation";
+                } else if (strcmp(token->value, "sscanf") == 0) {
+                    suggestion = "Use d_SplitString() and d_CompareStringToCString() for parsing";
+
+                // File Operations
+                } else if (strcmp(token->value, "fopen") == 0) {
+                    suggestion = "Consider d_CreateStringFromFile() for simple file reading";
+                } else if (strcmp(token->value, "tmpnam") == 0 || strcmp(token->value, "tempnam") == 0) {
+                    suggestion = "Use secure temporary file creation with proper cleanup";
+
+                // Memory Functions
+                } else if (strcmp(token->value, "memcpy") == 0) {
+                    suggestion = "Use d_AppendString() for string data or verify bounds manually";
+                } else if (strcmp(token->value, "memmove") == 0) {
+                    suggestion = "Use d_SliceString() and d_AppendString() for string manipulation";
+                } else if (strcmp(token->value, "memset") == 0) {
+                    suggestion = "Use d_ClearString() for string data or d_InitArray() for zero-initialization";
+
+                // Array/Buffer Operations
+                } else if (strcmp(token->value, "qsort") == 0) {
+                    suggestion = "Use d_SortArray() or d_SortStaticArray() with built-in comparison functions";
+                } else if (strcmp(token->value, "bsearch") == 0) {
+                    suggestion = "Use d_FindInArray() or d_FindInStaticArray() with sorted arrays";
+
+                // Character Classification (less critical but worth mentioning)
+                } else if (strstr(token->value, "to") == token->value && strlen(token->value) > 2) {
+                    // toupper, tolower, etc.
+                    suggestion = "Consider using d_FormatString() with format specifiers for case conversion";
+
                 } else {
                     suggestion = "Consider using Daedalus library alternatives for safety";
                 }
@@ -576,26 +638,45 @@ static int analyze_file_content(const char* file_path, const char* content, Viol
     // Enhanced Daedalus opportunities detection
     issues_found += check_daedalus_with_parser(parsed, violations);
 
-    // New: Check for unsafe strcmp(dString_t->str, ...) usage
+    // New: Check for unsafe strcmp(dString_t->str, ...) usage with enhanced contextual fragments
     UnsafeStrcmpUsage_t* unsafe_strcmp_usages = NULL;
     int unsafe_strcmp_count = 0;
     if (c_parser_detect_unsafe_strcmp_dstring_usage(parsed, &unsafe_strcmp_usages, &unsafe_strcmp_count)) {
         for (int i = 0; i < unsafe_strcmp_count; i++) {
             char message[256];
             char suggestion[512];
+            const char* violation_type = "unsafe_strcmp_generic";
+            
             if (unsafe_strcmp_usages[i].is_dstring_vs_cstring) {
                 snprintf(message, sizeof(message), "Unsafe `strcmp` with `dString_t->str` and C-string detected");
-                snprintf(suggestion, sizeof(suggestion), "Replace `strcmp(variable->str, \"a c-string\")` with `d_CompareStringToCString(variable, \"a c-string\")`");
+                snprintf(suggestion, sizeof(suggestion), "Replace `strcmp(%s, %s)` with `d_CompareStringToCString(%s, %s)`", 
+                        unsafe_strcmp_usages[i].variable1, unsafe_strcmp_usages[i].variable2,
+                        unsafe_strcmp_usages[i].variable1, unsafe_strcmp_usages[i].variable2);
+                violation_type = "unsafe_strcmp_dstring_cstring";
             } else if (unsafe_strcmp_usages[i].is_dstring_vs_dstring) {
                 snprintf(message, sizeof(message), "Unsafe `strcmp` between two `dString_t` objects detected");
-                snprintf(suggestion, sizeof(suggestion), "Replace `strcmp(variable1->str, variable2->str)` with `d_CompareStrings(variable1, variable2)`");
+                snprintf(suggestion, sizeof(suggestion), "Replace `strcmp(%s, %s)` with `d_CompareStrings(%s, %s)`", 
+                        unsafe_strcmp_usages[i].variable1, unsafe_strcmp_usages[i].variable2,
+                        unsafe_strcmp_usages[i].variable1, unsafe_strcmp_usages[i].variable2);
+                violation_type = "unsafe_strcmp_dstring_dstring";
             } else {
                 snprintf(message, sizeof(message), "Unsafe `strcmp` usage with `dString_t->str` detected");
                 snprintf(suggestion, sizeof(suggestion), "Consider using `d_CompareStrings()` or `d_CompareStringToCString()`");
             }
+            
             add_violation(violations, file_path, unsafe_strcmp_usages[i].line, unsafe_strcmp_usages[i].column,
                           message, suggestion, DAEDALUS_SUGGESTION, SEVERITY_WARNING);
             issues_found++;
+            
+            // Deliver enhanced contextual fragment for this specific unsafe strcmp pattern
+            FragmentContext_t fragment_context = {
+                .variable1 = unsafe_strcmp_usages[i].variable1,
+                .variable2 = unsafe_strcmp_usages[i].variable2,
+                .function_name = unsafe_strcmp_usages[i].function_name,
+                .file_name = file_path,
+                .violation_type = violation_type
+            };
+            metis_deliver_contextual_fragment(&fragment_context);
         }
         free(unsafe_strcmp_usages);
     }
@@ -694,30 +775,460 @@ static const char* get_type_name(ViolationType_t type) {
     }
 }
 
+/*
+ * Read and validate file content with compassionate error handling
+ */
+static char* read_and_validate_file(const char* file_path) {
+    printf("%s🔍 Analyzing:%s %s%s%s\n",
+           METIS_INFO, METIS_RESET,
+           METIS_CLICKABLE_LINK, file_path, METIS_RESET);
+
+    char* content = read_file_content(file_path);
+    if (!content) {
+        printf("%s💀 Error:%s Cannot read file %s\n",
+               METIS_ERROR, METIS_RESET, file_path);
+    }
+    return content;
+}
+
+/*
+ * Analyze file content and populate violations list
+ */
+static int analyze_file_violations(const char* file_path, const char* content, ViolationList_t* violations) {
+    if (!file_path || !content || !violations) return 0;
+    
+    return analyze_file_content(file_path, content, violations);
+}
+
+/*
+ * Display violations in divine format
+ */
+static void report_violations(ViolationList_t* violations, const char* file_path) {
+    if (!violations) return;
+    
+    int violation_count = violations->count;
+    
+    if (violation_count == 0) {
+        printf("%s✨ Divine analysis complete:%s No issues found in %s%s%s\n",
+               METIS_SUCCESS, METIS_RESET,
+               METIS_CLICKABLE_LINK, file_path, METIS_RESET);
+        return;
+    }
+
+    printf("%s📋 Found %d issues in %s:%s\n",
+           METIS_WARNING, violation_count, file_path, METIS_RESET);
+
+    for (int i = 0; i < violation_count; i++) {
+        LintViolation_t* v = &violations->violations[i];
+
+        printf("%s%s:%d:%d:%s %s[%s%s%s]%s %s%s%s\n",
+               METIS_CLICKABLE_LINK, v->file_path, v->line_number, v->column, METIS_RESET,
+               get_severity_color(v->severity),
+               get_type_color(v->type), get_type_name(v->type), METIS_RESET,
+               get_severity_color(v->severity), METIS_RESET,
+               METIS_TEXT_SECONDARY, v->violation_message, METIS_RESET);
+
+        if (v->suggestion) {
+            printf("    %s💡 %s%s%s\n",
+                   METIS_ACCENT, METIS_TEXT_MUTED, v->suggestion, METIS_RESET);
+        }
+    }
+}
+
+/*
+ * Build context string for philosophical violations with divine precision and metrics
+ */
+static void build_philosophical_context(LintViolation_t* violation, char* context, size_t context_size) {
+    if (!violation || !context) return;
+    
+    // Extract specific metrics from violation messages for precise context
+    if (strstr(violation->violation_message, "TODO")) {
+        snprintf(context, context_size, "TODO comment at %s:%d:%d - convert to proper issue or fix immediately", 
+                 violation->file_path, violation->line_number, violation->column);
+    } else if (strstr(violation->violation_message, "FIXME")) {
+        snprintf(context, context_size, "FIXME comment at %s:%d:%d - broken code requiring urgent attention", 
+                 violation->file_path, violation->line_number, violation->column);
+    } else if (strstr(violation->violation_message, "HACK")) {
+        snprintf(context, context_size, "HACK comment at %s:%d:%d - temporary solution needs proper implementation", 
+                 violation->file_path, violation->line_number, violation->column);
+    } else if (strstr(violation->violation_message, "XXX")) {
+        snprintf(context, context_size, "XXX marker at %s:%d:%d - problematic code section flagged", 
+                 violation->file_path, violation->line_number, violation->column);
+    } else if (strstr(violation->violation_message, "very long")) {
+        // Extract function length from message for specific guidance
+        char* length_start = strstr(violation->violation_message, "(");
+        char* length_end = strstr(violation->violation_message, " lines)");
+        if (length_start && length_end) {
+            int length = 0;
+            sscanf(length_start + 1, "%d", &length);
+            if (length > 100) {
+                snprintf(context, context_size, "extremely long function (%d lines) at %s:%d:%d - requires major refactoring", 
+                         length, violation->file_path, violation->line_number, violation->column);
+            } else if (length > 75) {
+                snprintf(context, context_size, "very long function (%d lines) at %s:%d:%d - consider breaking into smaller functions", 
+                         length, violation->file_path, violation->line_number, violation->column);
+            } else {
+                snprintf(context, context_size, "long function (%d lines) at %s:%d:%d - minor refactoring recommended", 
+                         length, violation->file_path, violation->line_number, violation->column);
+            }
+        } else {
+            snprintf(context, context_size, "long function at %s:%d:%d - length exceeds recommended guidelines", 
+                     violation->file_path, violation->line_number, violation->column);
+        }
+    } else if (strstr(violation->violation_message, "high complexity")) {
+        // Extract complexity score for targeted advice
+        char* score_start = strstr(violation->violation_message, "score: ");
+        if (score_start) {
+            int complexity = 0;
+            sscanf(score_start + 7, "%d", &complexity);
+            if (complexity > 20) {
+                snprintf(context, context_size, "extremely complex function (score: %d) at %s:%d:%d - urgent refactoring needed", 
+                         complexity, violation->file_path, violation->line_number, violation->column);
+            } else if (complexity > 15) {
+                snprintf(context, context_size, "highly complex function (score: %d) at %s:%d:%d - break into smaller functions", 
+                         complexity, violation->file_path, violation->line_number, violation->column);
+            } else {
+                snprintf(context, context_size, "complex function (score: %d) at %s:%d:%d - consider simplification", 
+                         complexity, violation->file_path, violation->line_number, violation->column);
+            }
+        } else {
+            snprintf(context, context_size, "complex function at %s:%d:%d - exceeds complexity thresholds", 
+                     violation->file_path, violation->line_number, violation->column);
+        }
+    } else if (strstr(violation->violation_message, "deep nesting")) {
+        // Extract nesting depth for specific guidance
+        char* depth_start = strstr(violation->violation_message, "depth: ");
+        if (depth_start) {
+            int depth = 0;
+            sscanf(depth_start + 7, "%d", &depth);
+            if (depth > 6) {
+                snprintf(context, context_size, "extremely deep nesting (%d levels) at %s:%d:%d - extract nested logic immediately", 
+                         depth, violation->file_path, violation->line_number, violation->column);
+            } else if (depth > 4) {
+                snprintf(context, context_size, "deep nesting (%d levels) at %s:%d:%d - extract into helper functions", 
+                         depth, violation->file_path, violation->line_number, violation->column);
+            } else {
+                snprintf(context, context_size, "moderate nesting (%d levels) at %s:%d:%d - consider flattening logic", 
+                         depth, violation->file_path, violation->line_number, violation->column);
+            }
+        } else {
+            snprintf(context, context_size, "deeply nested function at %s:%d:%d - exceeds nesting recommendations", 
+                     violation->file_path, violation->line_number, violation->column);
+        }
+    } else {
+        snprintf(context, context_size, "code quality issue at %s:%d:%d - requires attention", 
+                 violation->file_path, violation->line_number, violation->column);
+    }
+}
+
+/*
+ * Enhanced violation categorization with specific Daedalus function categories
+ */
+typedef struct {
+    // Documentation categories
+    bool has_docs;
+    bool has_missing_headers;
+    bool has_format_violations;
+    
+    // Daedalus suggestion categories  
+    bool has_memory_management;     // malloc, free, realloc, calloc
+    bool has_string_operations;     // strcpy, strcat, strcmp, strlen, etc.
+    bool has_logging_opportunities; // printf, fprintf, sprintf family
+    bool has_input_output;          // gets, fgets, scanf family
+    bool has_array_operations;      // qsort, bsearch
+    bool has_unsafe_strcmp_dstring; // specific strcmp with dString_t usage
+    
+    // Philosophy categories with metrics
+    bool has_complexity_issues;     // high complexity scores
+    bool has_length_issues;         // very long functions
+    bool has_nesting_issues;        // deep nesting
+    bool has_code_smell_comments;   // TODO, FIXME, HACK, XXX
+    
+    // Header violations
+    bool has_purpose_line_issues;
+} ViolationCategories_t;
+
+static ViolationCategories_t categorize_violations(ViolationList_t* violations) {
+    ViolationCategories_t categories = {0}; // Zero-initialize all fields
+    
+    for (int i = 0; i < violations->count; i++) {
+        LintViolation_t* v = &violations->violations[i];
+        
+        switch (v->type) {
+            case DOCS_VIOLATION:
+                categories.has_docs = true;
+                if (strstr(v->violation_message, "documentation violates one-line format")) {
+                    categories.has_format_violations = true;
+                }
+                break;
+                
+            case DAEDALUS_SUGGESTION:
+                // Categorize by specific function type
+                if (strstr(v->violation_message, "malloc") || 
+                    strstr(v->violation_message, "free") || 
+                    strstr(v->violation_message, "realloc") || 
+                    strstr(v->violation_message, "calloc")) {
+                    categories.has_memory_management = true;
+                    
+                } else if (strstr(v->violation_message, "strcpy") || 
+                          strstr(v->violation_message, "strcat") || 
+                          strstr(v->violation_message, "strcmp") || 
+                          strstr(v->violation_message, "strlen") || 
+                          strstr(v->violation_message, "strdup") ||
+                          strstr(v->violation_message, "strncpy") ||
+                          strstr(v->violation_message, "strncat")) {
+                    categories.has_string_operations = true;
+                    
+                } else if (strstr(v->violation_message, "printf") || 
+                          strstr(v->violation_message, "fprintf") || 
+                          strstr(v->violation_message, "sprintf") || 
+                          strstr(v->violation_message, "snprintf") ||
+                          strstr(v->violation_message, "vprintf")) {
+                    categories.has_logging_opportunities = true;
+                    
+                } else if (strstr(v->violation_message, "gets") || 
+                          strstr(v->violation_message, "fgets") || 
+                          strstr(v->violation_message, "scanf") || 
+                          strstr(v->violation_message, "sscanf")) {
+                    categories.has_input_output = true;
+                    
+                } else if (strstr(v->violation_message, "qsort") || 
+                          strstr(v->violation_message, "bsearch")) {
+                    categories.has_array_operations = true;
+                    
+                } else if (strstr(v->violation_message, "Unsafe `strcmp` with `dString_t")) {
+                    categories.has_unsafe_strcmp_dstring = true;
+                }
+                break;
+                
+            case PHILOSOPHICAL_VIOLATION:
+                if (strstr(v->violation_message, "high complexity")) {
+                    categories.has_complexity_issues = true;
+                } else if (strstr(v->violation_message, "very long")) {
+                    categories.has_length_issues = true;
+                } else if (strstr(v->violation_message, "deep nesting")) {
+                    categories.has_nesting_issues = true;
+                } else if (strstr(v->violation_message, "TODO") || 
+                        strstr(v->violation_message, "FIXME") || 
+                        strstr(v->violation_message, "HACK") || 
+                        strstr(v->violation_message, "XXX")) {
+                    categories.has_code_smell_comments = true;
+                }
+                break;
+                
+            case HEADER_VIOLATION:
+                categories.has_purpose_line_issues = true;
+                if (strstr(v->violation_message, "missing proper filename header")) {
+                    categories.has_missing_headers = true;
+                }
+                break;
+        }
+    }
+    return categories;
+}
+/*
+ * Helper function to find violation by pattern and type
+ */
+static LintViolation_t* find_violation_by_pattern(ViolationList_t* violations, const char* pattern, ViolationType_t type) {
+    for (int i = 0; i < violations->count; i++) {
+        if (violations->violations[i].type == type && 
+            strstr(violations->violations[i].violation_message, pattern)) {
+            return &violations->violations[i];
+        }
+    }
+    return NULL;
+}
+/*
+ * Deliver highly targeted fragments based on specific violation categories
+ */
+static void deliver_contextual_fragments(ViolationList_t* violations) {
+    if (!violations || violations->count == 0) {
+        metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, "perfect code achieved - divine craftsmanship", NULL, 0, 0);
+        return;
+    }
+    
+    ViolationCategories_t categories = categorize_violations(violations);
+    
+    // Memory Management Guidance  
+    if (categories.has_memory_management) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "malloc", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "free", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "realloc", DAEDALUS_SUGGESTION);
+        
+        char context[512] = METIS_TEXT_MUTED "Unsafe malloc detected - use " METIS_ACCENT "dArray_t"
+                            METIS_TEXT_MUTED " or " METIS_ACCENT "d_StaticArray_t" METIS_TEXT_MUTED " instead" METIS_RESET;
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, context, 
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // String Operations Guidance
+    if (categories.has_string_operations) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "strcmp", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "strcpy", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "strcat", DAEDALUS_SUGGESTION);
+        
+        char context[512];
+        if (categories.has_unsafe_strcmp_dstring) {
+            snprintf(context, sizeof(context), "Unsafe dString_t comparison detected - use d_CompareStrings() \nor d_CompareStringToCString()");
+        } else {
+            snprintf(context, sizeof(context), "Unsafe string functions detected - migrate to dString_t system");
+        }
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // Logging System Guidance  
+    if (categories.has_logging_opportunities) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "printf", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "fprintf", DAEDALUS_SUGGESTION);
+        
+        char context[512] = "Printf family functions detected - upgrade to\n Daedalus logging system with filtering and handlers";
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // Input/Output Safety Guidance
+    if (categories.has_input_output) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "gets", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "scanf", DAEDALUS_SUGGESTION);
+        
+        char context[512] = "Unsafe input functions detected - use Daedalus\n string builders with validation";
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // Array Operations Guidance
+    if (categories.has_array_operations) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "qsort", DAEDALUS_SUGGESTION);
+        if (!violation) violation = find_violation_by_pattern(violations, "bsearch", DAEDALUS_SUGGESTION);
+        
+        char context[512] = "Generic array operations detected - d_SortArray()\n and d_FindInArray() will provide type-safe alternatives";
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // Complexity-Specific Philosophy Guidance
+    if (categories.has_complexity_issues) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "high complexity", PHILOSOPHICAL_VIOLATION);
+        
+        char context[512] = METIS_TEXT_MUTED "High complexity functions detected - apply "
+        METIS_ACCENT "single \nresponsibility principle" METIS_TEXT_MUTED " and " METIS_ACCENT 
+        "extract helper functions" METIS_TEXT_MUTED "." METIS_RESET;
+        metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    if (categories.has_length_issues) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "very long", PHILOSOPHICAL_VIOLATION);
+        
+        char context[512] = "Very long functions detected - break into \nfocused, testable units following Unix philosophy";
+        metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    if (categories.has_nesting_issues) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "deep nesting", PHILOSOPHICAL_VIOLATION);
+        
+        char context[512] = "Deep nesting detected - use early \nreturns and guard clauses to flatten logic";
+        metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    if (categories.has_code_smell_comments) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "TODO", PHILOSOPHICAL_VIOLATION);
+        if (!violation) violation = find_violation_by_pattern(violations, "FIXME", PHILOSOPHICAL_VIOLATION);
+        if (!violation) violation = find_violation_by_pattern(violations, "HACK", PHILOSOPHICAL_VIOLATION);
+        
+        char context[512] = "Code smell comments (TODO/FIXME/HACK) detected - convert to \nproper issues or fix immediately";
+        metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // Documentation Guidance
+    if (categories.has_docs) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "documentation", DOCS_VIOLATION);
+        
+        char context[512];
+        if (categories.has_format_violations) {
+            snprintf(context, sizeof(context), "Documentation format violations detected - follow \none-line description, blank line, details pattern");
+        } else {
+            snprintf(context, sizeof(context), METIS_TEXT_MUTED "Missing function documentation detected - add "
+            METIS_ACCENT "@brief" METIS_TEXT_MUTED ",\n "
+            METIS_ACCENT "@param" METIS_TEXT_MUTED ", and " METIS_ACCENT "@return" METIS_TEXT_MUTED " descriptions." METIS_RESET);
+        }
+        metis_deliver_fragment(DOCS_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+    
+    // Header Issues Guidance
+    if (categories.has_purpose_line_issues) {
+        LintViolation_t* violation = find_violation_by_pattern(violations, "header", HEADER_VIOLATION);
+        if (!violation) violation = find_violation_by_pattern(violations, "filename", HEADER_VIOLATION);
+        
+        char context[512];
+        if (categories.has_missing_headers) {
+            snprintf(context, sizeof(context), "Missing file headers detected - add filename\n and purpose comments for clarity");
+        } else {
+            snprintf(context, sizeof(context), "File header issues detected - ensure proper\n filename and purpose documentation");
+        }
+        metis_deliver_fragment(LINTING_FRAGMENT, context,
+                             violation ? violation->file_path : NULL,
+                             violation ? violation->line_number : 0,
+                             violation ? violation->column : 0);
+    }
+}
+
 // =============================================================================
 // PUBLIC API IMPLEMENTATION
 // =============================================================================
 
 /*
- * Main file linting function with divine visual harmony
+ * Initialize a linting session with divine preparation
+ */
+static bool initialize_linting_session(void) {
+    // Force color support check and enable
+    if (metis_colors_supported()) {
+        metis_colors_enable(true);
+    } else {
+        printf("Colors not supported by terminal\n");
+    }
+    metis_fragment_engine_init();
+    return true;
+}
+/*
+ * Main file linting function
  */
 int metis_lint_file(const char* file_path) {
     if (!file_path) return -1;
 
-    // Initialize colors and fragment engine
-    metis_colors_enable(true);
-    metis_fragment_engine_init();
+    // Initialize session
+    if (!initialize_linting_session()) {
+        return -1;
+    }
 
-    printf("%s🔍 Analyzing:%s %s%s%s\n", // Replaced \u{1f50d} with 🔍
-           METIS_INFO, METIS_RESET,
-           METIS_CLICKABLE_LINK, file_path, METIS_RESET);
-
-    // Read file content
-    char* content = read_file_content(file_path);
+    // Read and validate file
+    char* content = read_and_validate_file(file_path);
     if (!content) {
-        // Line 718
-        printf("%s💀 Error:%s Cannot read file %s\n", // Replaced \u{1f480} with 💀
-               METIS_ERROR, METIS_RESET, file_path);
         return -1;
     }
 
@@ -728,141 +1239,18 @@ int metis_lint_file(const char* file_path) {
         return -1;
     }
 
-    // Analyze content
-    analyze_file_content(file_path, content, violations);
+    // Analyze violations
+    analyze_file_violations(file_path, content, violations);
     free(content);
 
-    // Report results with divine beauty
+    // Report violations
+    report_violations(violations, file_path);
+    
+    // Deliver contextual fragments
+    deliver_contextual_fragments(violations);
+
+    // Cleanup and return result
     int violation_count = violations->count;
-
-    if (violation_count == 0) {
-        printf("%s✨ Divine analysis complete:%s No issues found in %s%s%s\n", // Replaced \u{2728} with ✨
-               METIS_SUCCESS, METIS_RESET,
-               METIS_CLICKABLE_LINK, file_path, METIS_RESET);
-
-        // Deliver philosophical fragment for perfect code
-        metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, "perfect code achieved");
-    } else {
-        // Line 745
-        printf("%s📋 Found %d issues in %s:%s\n", // Replaced \u{1f4cb} with 📋
-               METIS_WARNING, violation_count, file_path, METIS_RESET);
-
-        for (int i = 0; i < violation_count; i++) {
-            LintViolation_t* v = &violations->violations[i];
-
-            // Divine clickable link format: file:line:column
-            printf("%s%s:%d:%d:%s %s[%s%s%s]%s %s%s%s\n",
-            METIS_CLICKABLE_LINK, v->file_path, v->line_number, v->column, METIS_RESET, // File info + reset
-            get_severity_color(v->severity),                                           // Severity color start
-            get_type_color(v->type), get_type_name(v->type), METIS_RESET,              // Type info + reset
-            get_severity_color(v->severity),                                           // Severity color start again?
-            METIS_RESET,                                                               // Reset again?
-            METIS_TEXT_SECONDARY, v->violation_message, METIS_RESET);                  // Message info
-
-            if (v->suggestion) {
-                // Line 761
-                printf("    %s💡 %s%s%s\n", // Replaced \u{1f4a1} with 💡
-                       METIS_ACCENT, METIS_TEXT_MUTED, v->suggestion, METIS_RESET);
-            }
-        }
-
-        // Deliver fragment based on violation types found
-        bool has_docs = false, has_daedalus = false, has_philosophical = false, has_linting = false;
-        
-        for (int i = 0; i < violation_count; i++) {
-            LintViolation_t* v = &violations->violations[i];
-            switch (v->type) {
-                case DOCS_VIOLATION:
-                    has_docs = true;
-                    break;
-                case DAEDALUS_SUGGESTION:
-                    has_daedalus = true;
-                    break;
-                case PHILOSOPHICAL_VIOLATION:
-                    has_philosophical = true;
-                    break;
-                case HEADER_VIOLATION:
-                    has_linting = true;
-                    break;
-            }
-        }
-        
-        // Deliver fragments based on violation types (session limits apply)
-        if (has_docs) {
-            // Find first docs violation for location context
-            char context[512] = "undocumented functions detected";
-            for (int i = 0; i < violation_count; i++) {
-                LintViolation_t* v = &violations->violations[i];
-                if (v->type == DOCS_VIOLATION) {
-                    snprintf(context, sizeof(context), "undocumented functions detected at %s:%d:%d", 
-                             v->file_path, v->line_number, v->column);
-                    break;
-                }
-            }
-            metis_deliver_fragment(DOCS_FRAGMENT, context);
-        }
-        if (has_daedalus) {
-            // Find first Daedalus violation for context
-            char context[512] = "unsafe function detected";
-            for (int i = 0; i < violation_count; i++) {
-                LintViolation_t* v = &violations->violations[i];
-                if (v->type == DAEDALUS_SUGGESTION) {
-                    // For strcmp, the message already contains the context
-                    if (strstr(v->violation_message, "`strcmp`")) {
-                        snprintf(context, sizeof(context), "%s at %s:%d:%d", 
-                                 v->violation_message, v->file_path, v->line_number, v->column);
-                    } else {
-                        snprintf(context, sizeof(context), "%s at %s:%d:%d", 
-                                 v->violation_message, v->file_path, v->line_number, v->column);
-                    }
-                    break;
-                }
-            }
-            metis_deliver_fragment(DAEDALUS_FRAGMENT, context);
-        }
-        if (has_philosophical) {
-            // Find first philosophical violation for location context
-            char context[512] = "TODO/FIXME comments found";
-            for (int i = 0; i < violation_count; i++) {
-                LintViolation_t* v = &violations->violations[i];
-                if (v->type == PHILOSOPHICAL_VIOLATION) {
-                    snprintf(context, sizeof(context), "TODO/FIXME comments found at %s:%d:%d", 
-                             v->file_path, v->line_number, v->column);
-                    break;
-                }
-            }
-            metis_deliver_fragment(PHILOSOPHICAL_FRAGMENT, context);
-        }
-        if (has_linting) {
-            // Generate specific context based on header violation type
-            char context[512] = "header violations detected";
-            for (int i = 0; i < violation_count; i++) {
-                LintViolation_t* v = &violations->violations[i];
-                if (v->type == HEADER_VIOLATION) {
-                    // Provide specific context based on violation type
-                    if (strstr(v->violation_message, "missing proper filename header")) {
-                        snprintf(context, sizeof(context), 
-                                "missing filename header at %s:%d:%d - Add: /* filename.c - description */", 
-                                v->file_path, v->line_number, v->column);
-                    } else if (strstr(v->violation_message, "missing proper wisdom fragment")) {
-                        snprintf(context, sizeof(context), 
-                                "missing wisdom header at %s:%d:%d - Add: // INSERT WISDOM HERE", 
-                                v->file_path, v->line_number, v->column);
-                    } else if (strstr(v->violation_message, "documentation violates one-line format")) {
-                        snprintf(context, sizeof(context), 
-                                "improper documentation format at %s:%d:%d - Use: description, blank line, details", 
-                                v->file_path, v->line_number, v->column);
-                    } else {
-                        snprintf(context, sizeof(context), "header formatting issues at %s:%d:%d", 
-                                v->file_path, v->line_number, v->column);
-                    }
-                    break;
-                }
-            }
-            metis_deliver_fragment(LINTING_FRAGMENT, context);
-        }
-    }
-
     free_violation_list(violations);
     return violation_count;
 }

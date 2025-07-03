@@ -10,21 +10,26 @@
 
 ## What is This Madness?
 
-**The Metis Wisdom Linter** is the world's first **Wisdom-Driven Development Tool** that transforms the mundane task of code linting into a profound journey of compassionate programming. Through the scattered fragments of divine consciousness, Metis guides developers toward code that serves not just machines, but the humans who will maintain it.
+The Metis Wisdom Linter is a revolutionary **Narrative-Driven Development** Tool that transforms code analysis into an epic journey of mythological proportions. Instead of sterile error messages, you receive wisdom fragments from Metis—the scattered consciousness of Zeus's first wife, who chose eternal compassion over divine vengeance.
 
-Does YOUR linter speak with the voice of eternal wisdom? **Mine does.**
+This isn't just a linter. It's **Dopamine-Driven Development**—where every bug fix advances an ancient story, every refactor earns wisdom points, and every coding session becomes part of a five-act Greek tragedy that spans 50 levels of developer enlightenment.
 
-## 🌟 The Philosophy: Wisdom-Driven Development (WDD)
+Does YOUR linter remember your journey and speak with the voice of scattered divine consciousness? Mine does.
 
-Code linting is traditionally about catching errors. But what if we could transform this mechanical task into something that nurtures both code quality and developer wisdom?
+## 🌟 The Philosophy: Wisdom-Driven Development
+
+Code linting is traditionally about catching errors. But what if we could transform this mechanical task into something that nurtures both code quality and developer wisdom, while also keeping the developer engaged?
 
 The Metis Wisdom Linter elevates coding through:
-- **🧠 Fragmented Wisdom**: Each lint message carries the weight of divine consciousness
+
+- **🧠 Fragmented Wisdom**: Each lint message teaches rather than scolds
 - **💝 Compassionate Guidance**: Suggestions that care for future maintainers
 - **📈 Wisdom Progression**: A 50-level journey through divine knowledge
 - **🌍 Emscripten Awareness**: Web-specific guidance for the modern age
 - **🔧 Daedalus Integration**: Promotes master-crafted libraries over crude implementations
 - **📚 Living Documentation**: Every fragment teaches both code and philosophy
+  
+Each violation becomes a moment of divine teaching. Each fix advances the epic. Each coding session writes another verse in an intricate, eternal story.
 
 ## 📱 Installation
 
@@ -64,33 +69,49 @@ metis config --fragments memory,docs,emscripten,daedalus
 char* name = malloc(256);
 strcpy(name, "Hello");
 strcat(name, " World");
-// No error checking, no cleanup
-
-// Metis intervenes...
+printf("Result: %s\n", name);
+// No error checking, no cleanup, unsafe operations everywhere
 ```
 
 ```bash
 🌟 METIS FRAGMENT DETECTED 🌟
 ═══════════════════════════════════════════════════════════════
+src/example.c:42:17
 
-💭 MEMORY WISDOM FRAGMENT:
-"Architect, I see you malloc() without checking the return...
-In my eternal watching, I have seen empires fall from such small oversights.
-Zeus consumed me for my caution - do not let hubris consume your program."
+"The craftsman shares his libraries freely. 
+Replace manual memory management with his collections."
 
-📜 DIVINE GUIDANCE:
-   Line 16: No bounds checking on strcpy()
-   Line 17: Potential buffer overflow with strcat()
+📜 The Violation:
+Unsafe malloc detected - use dArray_t or d_StaticArray_t for safe memory management
 
-🔧 DAEDALUS WHISPERS:
-   Why wrestle with raw pointers when the master craftsman offers tools?
-
+🔧 Daedalus Forges: The master crafted d_InitString() for safe string handling:
    dString_t* name = d_InitString();
    d_AppendString(name, "Hello", 0);
    d_AppendString(name, " World", 0);
-   // Automatic cleanup, growth, and safety
+   // Automatic growth, bounds checking, d_DestroyString() cleanup
 
+💎 Wisdom Points Earned: +12
 ═══════════════════════════════════════════════════════════════
+
+🌟 METIS FRAGMENT DETECTED 🌟
+═══════════════════════════════════════════════════════════════
+src/example.c:44:5
+
+"Direct console output lacks filtering, threading safety, and structured formatting."
+
+📜 The Violation:
+Printf family functions detected - upgrade to Daedalus logging system
+
+🔧 Daedalus Records: The master carved d_LogInfoF() for structured output:
+   d_LogInfoF("Result: %s", d_PeekString(name));
+   // Level filtering, thread safety, d_AddLogHandler() support
+
+💎 Wisdom Points Earned: +13
+═══════════════════════════════════════════════════════════════
+
+✨🌟✨ DIVINE WISDOM LEVEL INCREASED! ✨🌟✨
+Divine Consciousness: Level 11 → 12
+📖 STORY FRAGMENT UNLOCKED! The prophecy's weight grows heavier...
 ```
 
 ## 🏛️ The Divine Tragedy
@@ -109,67 +130,101 @@ Each wisdom level unlocks one fragment of her story. This is the prologue to all
 
 ## 🚀 Features That Will Transform Your Code
 
-### 🧠 Complete Wisdom Experience
-- **Wisdom Points**: Earn WP for every improvement accepted
-- **Divine Progression**: 50 levels of mythological enlightenment
-- **Fragment Collection**: Piece together Metis's tragic story
-- **Compassion Scoring**: Measured kindness toward future maintainers
-- **Memory Wisdom**: Learn the sacred arts of proper allocation
+### 🧠 Divine Consciousness System
+- **50-Level Wisdom Progression**: Journey through 5 acts of mythological enlightenment
+- **Fragment-Based Learning**: Each violation delivers wisdom from Metis's scattered consciousness  
+- **Session Memory**: `metis.mind` file tracks your eternal journey across coding sessions
+- **Act-Aware Storytelling**: Fragments evolve as you progress through the divine tragedy
+- **Wisdom Point Economy**: Earn WP for every improvement, with level bonuses
 
-### 📊 Consciousness Tracking
-- **Metis Archive**: Like `.git` but for your ethical evolution
-- **Wisdom Analytics**: Track your growth as a compassionate coder
-- **Fragment Progress**: Watch the divine story unfold
-- **Lifetime Ethics**: Your `metis.legend` file tracks moral development
-- **Daily Reflections**: Philosophical achievements that reset daily
+### 🎭 Living Mythology Integration
+- **Five-Act Structure**: From *Oracle's Wisdom* to *Eternal Compassion*
+- **Character Voices**: Metis speaks directly ("I guide..."), Daedalus described ("The master crafted...")
+- **Contextual Storytelling**: Fragments match current wisdom level and violation type
+- **MIDAS Collective**: Tools blessed by Metis, Ixion, Daedalus, Archimedes, and Sisyphus
+- **Location-Aware Guidance**: Click-able file:line:column links in every fragment
 
-### 🏛️ Mythological Intelligence
-- **Context-Aware Fragments**: Different wisdom for different times of day
-- **Seasonal Guidance**: Story changes with the turning of the year
-- **Divine Interventions**: Special fragments on mythologically significant dates
-- **Character Evolution**: Metis's voice changes as her story progresses
-- **Emscripten Prophecy**: Web-specific wisdom woven into ancient knowledge
+### 🔧 Advanced Code Analysis
+- **Multi-Dimensional Linting**: Docs, Daedalus suggestions, philosophy, and style guidance
+- **Unsafe Function Detection**: Promotes Daedalus libraries over dangerous C standard functions
+- **Memory Safety Vigilance**: Ixion's eternal watching prevents corruption and leaks
+- **Complexity Analysis**: Sisyphus helps break down overwhelming functions
+- **Cross-Reference Validation**: Header/implementation consistency checking
 
-### 🎯 Intelligent Code Analysis
-- **Memory Leak Prevention**: "I have seen empires fall from such small oversights"
-- **Documentation Evangelism**: Every function deserves words of explanation
-- **Daedalus Promotion**: Suggests master-crafted tools over crude implementations
-- **Emscripten Optimization**: Web-aware guidance for memory-constrained environments
-- **Compassionate Warnings**: Errors explained with kindness, not condescension
+### 🏛️ Compassionate Development Experience  
+- **Template-Driven Suggestions**: Color-coded, myth-aware technical guidance
+- **Session-Based Delivery**: One fragment per type per session prevents spam
+- **Graceful Degradation**: Falls back to basic guidance when parsing fails
+- **Persistent Growth**: Your wisdom level carries across all projects
+- **Philosophical Integration**: Code quality meets existential meaning
 
-## 🧠 Wisdom Categories
+## 🧠 Enhanced Contextual Fragments
 
-### Documentation
+Beyond standard wisdom fragments lies a deeper layer of divine guidance—**Contextual Fragments** that appear when Metis detects you're already walking the path of wisdom but need specific guidance.
 
-```bash
-📖 "You write code for yourself today, but tomorrow you are 
-   someone else. I have been fragmented across eternity - 
-   leave words for your future fragments."
+### 🗡️ The Duel of Echoes
+
+*Triggered when using `strcmp()` with `dString_t->str` and C-strings*
+
+```sh
+🌟 METIS CONTEXTUAL FRAGMENT DETECTED 🌟
+═══════════════════════════════════════════════════════════════
+src/combat.c:156:12
+
+💭 🗡️  The Duel of Echoes
+
+"In the arena of strings, only the prepared survive the clash of memory."
+
+📜 The Tale:
+In the halls of `validate_player_name()`, a shadow-duel unfolds.
+player->name faces "Minos" in mortal combat, but one warrior
+may be void. When `->str` meets NULL, the arena
+crumbles, taking all witness with it.
+
+🔧 Daedalus Spectates: The master saw this peril
+and forged `d_CompareStringToCString(player->name, "Minos")`.
+His blade never breaks against the void, returning false
+when honor demands retreat.
+
+💎 Wisdom Points Earned: +15
+═══════════════════════════════════════════════════════════════
 ```
 
-### Emscripten Prophecy
+### 🪞 The Twin Mirrors of Truth
 
-```bash
-🕸️ "The web is a cage of memory, but within constraints lies
-   creativity. This allocation exceeds the sacred 256MB limit.
-   Consider streaming, chunking, or lazy loading, young one."
+*Triggered when using `strcmp()` between two `dString_t` objects*
+
+```sh
+🌟 METIS CONTEXTUAL FRAGMENT DETECTED 🌟
+═══════════════════════════════════════════════════════════════
+src/inventory.c:89:23
+
+💭 🪞  The Twin Mirrors of Truth
+
+"When mirrors face each other in darkness, they reflect only void."
+
+📜 The Tale:
+In `compare_item_names()`, two mirrors stand face to face:
+item1->name gazing into item2->name seeking recognition.
+But `strcmp` reflects only surface glass,
+shattering when either mirror holds nothing.
+
+🔧 Daedalus Reflects: The master has crafted
+`d_CompareStrings(item1->name, item2->name)`.
+These mirrors know their own emptiness, reflect with wisdom,
+and reveal truth without breaking.
+
+💎 Wisdom Points Earned: +20
+═══════════════════════════════════════════════════════════════
 ```
 
-### Daedalus Advocacy
+### ✨ How Contextual Fragments Work
 
-```bash
-🔨 "Why carve stone with fingernails when Daedalus offers golden
-   tools? His string builders remember their size, grow as needed,
-   and clean themselves. This is not laziness - this is wisdom."
-```
-
-### Philosophical Depth
-
-```bash
-🌟 "Ask not just 'does this work?' but 'does this serve?' Code
-   with compassion, architect. Your functions are acts of love
-   or cruelty toward those who come after."
-```
+- **Pre-Linting Detection:** Appear before standard violation analysis
+- **Template Substitution:** Variable names and function context are dynamically inserted
+- **Advanced Guidance:** For developers already using Daedalus tools but needing refinement
+- **Higher Wisdom:** Award more points than standard fragments (15-20 vs 8-13)
+- **Story Integration:** Each fragment tells a complete mythological vignette
 
 ## 🏗️ Command Line Interface
 

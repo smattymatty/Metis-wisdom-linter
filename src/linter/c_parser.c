@@ -1588,9 +1588,9 @@ bool c_parser_has_proper_filename_header(ParsedFile_t* parsed, const char* expec
 }
 
 /*
- * Check if file has proper second line wisdom comment
+ * Check if file has proper second line purpose comment
  */
-bool c_parser_has_proper_wisdom_header(ParsedFile_t* parsed) {
+bool c_parser_has_proper_purpose_line(ParsedFile_t* parsed) {
     if (!parsed) return false;
 
     int comment_count = 0;
@@ -1603,14 +1603,29 @@ bool c_parser_has_proper_wisdom_header(ParsedFile_t* parsed) {
             comment_count++;
 
             if (comment_count == 2) {
-                // Check if it contains wisdom markers
-                if (strstr(token->value, "INSERT WISDOM HERE") ||
-                    strstr(token->value, "Fragment #") ||
-                    strstr(token->value, "Metis Fragment")) {
-                    return true;
+                // Reject ONLY the placeholder, accept everything else meaningful
+                // TODO: Add a 'Purpose Wisdom' placeholder generator in story/purpose_lines.h
+                // This will allow for more flexible purpose lines, generated depending on what
+                // the Linter is currently analyzing (e.g. function names, file names, etc.)
+                if (strstr(token->value, "INSERT WISDOM HERE")) {
+                    return false; // Still using placeholder
                 }
-                // Found second comment but it's not wisdom
-                return false;
+                
+                // Check for meaningful content (not just whitespace/punctuation)
+                char* content = token->value;
+                bool has_meaningful_content = false;
+                
+                // Skip comment markers and whitespace
+                while (*content && (*content == '/' || *content == '*' || isspace(*content))) {
+                    content++;
+                }
+                
+                // Check if there's actual meaningful text
+                if (strlen(content) > 0) {
+                    has_meaningful_content = true;
+                }
+                
+                return has_meaningful_content;
             }
         }
 
@@ -1647,7 +1662,7 @@ bool c_parser_has_proper_file_headers(ParsedFile_t* parsed) {
     if (!filename) return false;
 
     return c_parser_has_proper_filename_header(parsed, filename) &&
-           c_parser_has_proper_wisdom_header(parsed);
+           c_parser_has_proper_purpose_line(parsed);
 }
 
 /*
@@ -2054,6 +2069,17 @@ bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
                         found_usages[*count_out].column = current_token->column;
                         found_usages[*count_out].is_dstring_vs_cstring = is_dstring_vs_cstring;
                         found_usages[*count_out].is_dstring_vs_dstring = is_dstring_vs_dstring;
+                        
+                        // Extract function name context
+                        c_parser_find_containing_function(parsed, current_token->line, 
+                                                        found_usages[*count_out].function_name, 
+                                                        sizeof(found_usages[*count_out].function_name));
+                        
+                        // Extract variable names from the strcmp arguments
+                        extract_strcmp_variable_names(parsed, start_of_args_idx, comma_idx, end_of_call_idx,
+                                                    found_usages[*count_out].variable1, sizeof(found_usages[*count_out].variable1),
+                                                    found_usages[*count_out].variable2, sizeof(found_usages[*count_out].variable2));
+                        
                         (*count_out)++;
                     }
                 }
@@ -2063,4 +2089,110 @@ bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
 
     *usages_out = found_usages;
     return *count_out > 0;
+}
+
+/*
+ * Helper function to find the containing function for a given line number
+ */
+void c_parser_find_containing_function(ParsedFile_t* parsed, int line, char* function_name, size_t name_size) {
+    if (!parsed || !function_name || name_size == 0) {
+        return;
+    }
+    
+    // Default to "unknown_function" if we can't find the containing function
+    strncpy(function_name, "unknown_function", name_size - 1);
+    function_name[name_size - 1] = '\0';
+    
+    // Search through functions to find the one that likely contains this line
+    // Since we don't have end_line, we'll use a heuristic approach
+    for (int i = 0; i < parsed->function_count; i++) {
+        FunctionInfo_t* func = &parsed->functions[i];
+        // Check if the line is at or after the function definition
+        if (func->line_number <= line) {
+            // If this is the last function or the line is before the next function,
+            // assume it belongs to this function
+            if (i == parsed->function_count - 1 || 
+                (i + 1 < parsed->function_count && line < parsed->functions[i + 1].line_number)) {
+                strncpy(function_name, func->name, name_size - 1);
+                function_name[name_size - 1] = '\0';
+                return;
+            }
+        }
+    }
+}
+
+/*
+ * Helper function to extract variable names from strcmp arguments with intelligence
+ */
+void extract_strcmp_variable_names(ParsedFile_t* parsed, int start_idx, int comma_idx, int end_idx,
+                                        char* variable1, size_t var1_size, char* variable2, size_t var2_size) {
+    if (!parsed || !variable1 || !variable2 || var1_size == 0 || var2_size == 0) {
+        return;
+    }
+    
+    // Initialize with default values
+    strncpy(variable1, "unknown", var1_size - 1);
+    variable1[var1_size - 1] = '\0';
+    strncpy(variable2, "unknown", var2_size - 1);
+    variable2[var2_size - 1] = '\0';
+    
+    // Extract first argument (from start_idx to comma_idx - 1)
+    if (comma_idx > start_idx) {
+        extract_base_variable_name(parsed, start_idx, comma_idx - 1, variable1, var1_size);
+    }
+    
+    // Extract second argument (from comma_idx + 1 to end_idx - 1)  
+    if (end_idx > comma_idx + 1) {
+        extract_base_variable_name(parsed, comma_idx + 1, end_idx - 1, variable2, var2_size);
+    }
+}
+
+/*
+ * Extract the base variable name from a token range, handling ->str patterns intelligently
+ */
+void extract_base_variable_name(ParsedFile_t* parsed, int start_idx, int end_idx, 
+                                      char* variable_name, size_t name_size) {
+    if (!parsed || !variable_name || name_size == 0) return;
+    
+    char full_expression[256] = {0};
+    int expr_pos = 0;
+    
+    // First, build the full expression
+    for (int i = start_idx; i <= end_idx && i < parsed->token_count; i++) {
+        Token_t* token = &parsed->tokens[i];
+        
+        // Skip whitespace tokens and newlines
+        if (token->type == TOKEN_NEWLINE) continue;
+        
+        // Add token to expression
+        if (expr_pos < sizeof(full_expression) - strlen(token->value) - 1) {
+            strcpy(full_expression + expr_pos, token->value);
+            expr_pos += strlen(token->value);
+        }
+    }
+    
+    // Now intelligently extract the base variable name
+    if (strstr(full_expression, "->str")) {
+        // Pattern like "item1->str" -> extract "item1"
+        char* arrow_pos = strstr(full_expression, "->");
+        if (arrow_pos) {
+            size_t base_len = arrow_pos - full_expression;
+            if (base_len < name_size - 1) {
+                strncpy(variable_name, full_expression, base_len);
+                variable_name[base_len] = '\0';
+                return;
+            }
+        }
+    }
+    
+    // For string literals, just use the literal
+    if (full_expression[0] == '"') {
+        strncpy(variable_name, full_expression, name_size - 1);
+        variable_name[name_size - 1] = '\0';
+        return;
+    }
+    
+    // For simple identifiers, use as-is
+    strncpy(variable_name, full_expression, name_size - 1);
+    variable_name[name_size - 1] = '\0';
 }

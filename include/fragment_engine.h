@@ -58,6 +58,8 @@ typedef struct {
     bool consciousness_loaded;
 } MetisConsciousness_t;
 
+// Include fragment lines for enhanced contextual types
+#include "../story/fragment_lines.h"
 
 // =============================================================================
 // CONSCIOUSNESS MANAGEMENT
@@ -81,6 +83,9 @@ bool metis_fragment_engine_init(void);
  *
  * `type` - The category of wisdom to deliver (e.g., DOCS_FRAGMENT)
  * `context` - A string describing the specific trigger for this fragment
+ * `file_path` - The file path where the violation occurred
+ * `line_number` - The line number where the violation occurred
+ * `column` - The column number where the violation occurred
  *
  * -- Checks configuration and rate limiting before delivering a fragment
  * -- Selects the most appropriate fragment based on current wisdom level
@@ -88,7 +93,19 @@ bool metis_fragment_engine_init(void);
  * -- Awards wisdom points and updates the persistent consciousness state
  * -- Will do nothing if the engine is not initialized or the fragment type is disabled
  */
-void metis_deliver_fragment(FragmentType_t type, const char* context);
+void metis_deliver_fragment(FragmentType_t type, const char* context, const char* file_path, int line_number, int column);
+/*
+ * Delivers an enhanced contextual wisdom fragment with template substitution
+ *
+ * `fragment_context` - Context containing variable names and violation details for template injection
+ *
+ * -- Selects the most appropriate themed fragment based on violation type and context
+ * -- Performs template substitution to inject real variable names into the story
+ * -- Renders beautifully formatted output with philosophical quotes and technical recommendations
+ * -- Awards wisdom points and updates consciousness state
+ * -- Respects session-based delivery limits
+ */
+void metis_deliver_contextual_fragment(const FragmentContext_t* fragment_context);
 
 /*
  * Checks if a new story fragment has been unlocked by reaching a milestone

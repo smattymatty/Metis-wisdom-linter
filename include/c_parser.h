@@ -321,6 +321,9 @@ typedef struct {
     int column;
     bool is_dstring_vs_cstring;
     bool is_dstring_vs_dstring;
+    char function_name[128];    // Function where the violation occurred
+    char variable1[64];         // First variable name (e.g., "player->str")
+    char variable2[64];         // Second variable name (e.g., "\"Minos\"")
 } UnsafeStrcmpUsage_t;
 
 /**
@@ -387,7 +390,7 @@ bool c_parser_has_proper_filename_header(ParsedFile_t* parsed, const char* expec
  * -- Essential for maintaining philosophical depth in code documentation
  * -- Fails if significant code appears before finding second comment
  */
-bool c_parser_has_proper_wisdom_header(ParsedFile_t* parsed);
+bool c_parser_has_proper_purpose_line(ParsedFile_t* parsed);
 
 /*
  * Extract filename from full file path for header validation
@@ -471,4 +474,10 @@ bool c_parser_implementation_matches_header(ParsedFile_t* parsed, const char* fu
 bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
                                                  UnsafeStrcmpUsage_t** usages_out,
                                                  int* count_out);
+
+// Helper functions for unsafe strcmp detection
+void c_parser_find_containing_function(ParsedFile_t* parsed, int line, char* function_name, size_t name_size);
+void extract_strcmp_variable_names(ParsedFile_t* parsed, int start_idx, int comma_idx, int end_idx,
+                                  char* variable1, size_t var1_size, char* variable2, size_t var2_size);
+
 #endif /* C_PARSER_H */

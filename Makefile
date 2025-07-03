@@ -40,7 +40,6 @@ all: $(TARGET)
 
 # Create build directories with proper permissions
 $(BUILD_DIR) $(BIN_DIR) $(OBJ_DIR):
-# <TAB> Must be a TAB
 	@mkdir -p $@
 # <TAB> Must be a TAB
 	@chmod 755 $@
@@ -74,37 +73,6 @@ clean:
 # <TAB> Must be a TAB
 	rm -rf $(BUILD_DIR)
 
-# Show available targets
-.PHONY: help
-help:
-	@echo "🏛️ METIS WISDOM LINTER - Divine Build System"
-	@echo "═══════════════════════════════════════════════════════════════"
-	@echo ""
-	@echo "📦 BUILD TARGETS:"
-	@echo "  all        - Build Metis (default target)"
-	@echo "  clean      - Clean build artifacts"
-	@echo "  release    - Build optimized release version"
-	@echo ""
-	@echo "🧪 TEST TARGETS:"
-	@echo "  test       - Run all tests"
-	@echo "  run-test-c-parser-basic         - Run C parser tests"
-	@echo "  run-test-c-parser-advanced      - Run advanced C parser tests"
-	@echo "  run-test-metis-linter-basic     - Run linter tests (basic)"
-	@echo "  run-test-metis-linter-basic     - Run linter tests"
-	@echo "  run-test-fragment-engine-basic  - Run fragment engine tests"
-	@echo "  run-test-fragment-engine-integration - Run integration tests"
-	@echo ""
-	@echo "🚀 INSTALLATION:"
-	@echo "  install    - Install Metis system-wide (requires sudo)"
-	@echo "  uninstall  - Remove Metis from system (requires sudo)"
-	@echo "  status     - Check installation status"
-	@echo ""
-	@echo "💡 EXAMPLES:"
-	@echo "  make                    # Build Metis"
-	@echo "  sudo make install       # Install system-wide"
-	@echo "  metis lint .            # Use installed Metis"
-	@echo "  sudo make uninstall     # Remove from system"
-	@echo ""
 
 # =============================================================================
 # TESTING - REFORGED AND CORRECTED
