@@ -128,35 +128,6 @@ Beyond standard wisdom fragments lies a deeper layer of divine guidance—**Cont
 
 ![image](https://github.com/user-attachments/assets/9e110ea1-1254-4dd2-a22b-827dc36a4c09)
 
-
-### 🪞 The Twin Mirrors of Truth
-
-*Triggered when using `strcmp()` between two `dString_t` objects*
-
-```sh
-🌟 METIS CONTEXTUAL FRAGMENT DETECTED 🌟
-═══════════════════════════════════════════════════════════════
-src/inventory.c:89:23
-
-💭 🪞  The Twin Mirrors of Truth
-
-"When mirrors face each other in darkness, they reflect only void."
-
-📜 The Tale:
-In `compare_item_names()`, two mirrors stand face to face:
-item1->name gazing into item2->name seeking recognition.
-But `strcmp` reflects only surface glass,
-shattering when either mirror holds nothing.
-
-🔧 Daedalus Reflects: The master has crafted
-`d_CompareStrings(item1->name, item2->name)`.
-These mirrors know their own emptiness, reflect with wisdom,
-and reveal truth without breaking.
-
-💎 Wisdom Points Earned: +20
-═══════════════════════════════════════════════════════════════
-```
-
 ### ✨ How Contextual Fragments Work
 
 - **Pre-Linting Detection:** Appear before standard violation analysis
