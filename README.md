@@ -124,33 +124,10 @@ Each wisdom level unlocks one fragment of her story. This is the prologue to all
 
 Beyond standard wisdom fragments lies a deeper layer of divine guidance—**Contextual Fragments** that appear when Metis detects you're already walking the path of wisdom but need specific guidance.
 
-### 🗡️ The Duel of Echoes
+![image](https://github.com/user-attachments/assets/f34d6c4e-b874-4e72-ab6e-78cddff7167d)
 
-*Triggered when using `strcmp()` with `dString_t->str` and C-strings*
+![image](https://github.com/user-attachments/assets/9e110ea1-1254-4dd2-a22b-827dc36a4c09)
 
-```sh
-🌟 METIS CONTEXTUAL FRAGMENT DETECTED 🌟
-═══════════════════════════════════════════════════════════════
-src/combat.c:156:12
-
-💭 🗡️  The Duel of Echoes
-
-"In the arena of strings, only the prepared survive the clash of memory."
-
-📜 The Tale:
-In the halls of `validate_player_name()`, a shadow-duel unfolds.
-player->name faces "Minos" in mortal combat, but one warrior
-may be void. When `->str` meets NULL, the arena
-crumbles, taking all witness with it.
-
-🔧 Daedalus Spectates: The master saw this peril
-and forged `d_CompareStringToCString(player->name, "Minos")`.
-His blade never breaks against the void, returning false
-when honor demands retreat.
-
-💎 Wisdom Points Earned: +15
-═══════════════════════════════════════════════════════════════
-```
 
 ### 🪞 The Twin Mirrors of Truth
 
