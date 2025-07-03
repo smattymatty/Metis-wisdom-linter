@@ -5,7 +5,7 @@
 #include "fragment_engine.h"
 #include "metis_config.h"
 #include "metis_colors.h"
-#include "../../story/fragment_lines.h"
+#include "../../story/fragment_lines.h" // Correct path to your refactored header
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +31,39 @@ typedef struct {
     int min_wisdom_level;
     int wisdom_points_awarded;
 } FragmentContent_t;
+
+/*
+ * Parses context string to extract specific violation details
+ */
+static void parse_violation_context(const char* context, FragmentContext_t* parsed_context) {
+    if (!context || !parsed_context) return;
+    
+    // Initialize the context structure
+    memset(parsed_context, 0, sizeof(FragmentContext_t));
+    
+    // Extract function names from common patterns
+    if (strstr(context, "printf") || strstr(context, "Printf")) {
+        parsed_context->unsafe_function = "printf";
+        parsed_context->violation_type = "printf_family";
+    } else if (strstr(context, "malloc")) {
+        parsed_context->unsafe_function = "malloc";
+        parsed_context->violation_type = "manual_memory_allocation";
+    } else if (strstr(context, "strcpy") || strstr(context, "strcat")) {
+        parsed_context->unsafe_function = strstr(context, "strcpy") ? "strcpy" : "strcat";
+        parsed_context->violation_type = "unsafe_string_operation";
+    } else if (strstr(context, "strcmp")) {
+        parsed_context->unsafe_function = "strcmp";
+        parsed_context->violation_type = "unsafe_string_comparison";
+    } else if (strstr(context, "free")) {
+        parsed_context->unsafe_function = "free";
+        parsed_context->violation_type = "manual_memory_deallocation";
+    }
+    
+    // Set generic context if no specific match
+    if (!parsed_context->violation_type) {
+        parsed_context->violation_type = "generic_improvement";
+    }
+}
 
 // =============================================================================
 // WISDOM PROGRESSION LOGIC
@@ -109,6 +142,159 @@ static bool save_consciousness_state(void) {
     return true;
 }
 
+
+static const UnsafeFunctionGuidance_t UNSAFE_FUNCTION_GUIDANCE[] = {
+    {
+        .unsafe_function = "malloc",
+        .context_template = 
+            "Manual memory allocation requires explicit size calculation, lacks bounds checking, "
+            "and demands manual cleanup. %sd_InitArray()%s provides automatic growth, "
+            "built-in bounds protection, and guaranteed cleanup through %sd_DestroyArray()%s.",
+        .unsafe_pattern_template = 
+            "%sItem_t* items = malloc(sizeof(Item_t) * count);%s\n"
+            "%s// Manual sizing, no bounds checking, cleanup required%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Forges:%s The master crafted %sd_InitArray()%s for safe use:\n"
+            "   %sdArray_t* items = d_InitArray(count, sizeof(Item_t));%s\n"
+            "   %s// Automatic growth, bounds checking, %sd_DestroyArray()%s cleanup%s",
+        .wisdom_points = 15
+    },
+    {
+        .unsafe_function = "free",
+        .context_template = 
+            "Manual deallocation is prone to double-free errors, memory leaks from forgotten calls, "
+            "and use-after-free vulnerabilities. %sd_DestroyArray()%s handles complete cleanup "
+            "automatically, including nested structures and prevents common memory errors.",
+        .unsafe_pattern_template = 
+            "%sfree(items); items = NULL;%s\n"
+            "%s// Easy to forget, double-free risk, manual null assignment%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Provides:%s The master provides %sd_DestroyArray()%s for automatic cleanup:\n"
+            "   %sd_DestroyArray(items_array);%s\n"
+            "   %s// Handles all memory, prevents leaks and double-free errors%s",
+        .wisdom_points = 12
+    },
+    {
+        .unsafe_function = "realloc",
+        .context_template = 
+            "Manual memory reallocation risks losing data, null pointer returns, and memory leaks. "
+            "%sd_GrowArray()%s and %sd_ResizeArray()%s provide safe expansion with automatic "
+            "data preservation and error handling.",
+        .unsafe_pattern_template = 
+            "%sptr = realloc(ptr, new_size);%s\n"
+            "%s// Risk of null return, data loss, manual size tracking%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Reshapes:%s The master forged %sd_GrowArray()%s for safe expansion:\n"
+            "   %sd_GrowArray(items, additional_capacity);%s\n"
+            "   %s// Safe growth, data preservation, %sd_ResizeArray()%s for precise sizing%s",
+        .wisdom_points = 15
+    },
+    {
+        .unsafe_function = "strcpy",
+        .context_template = 
+            "String copying without bounds checking leads to buffer overflows and security vulnerabilities. "
+            "%sd_SetString()%s and %sd_AppendString()%s automatically manage buffer sizes, "
+            "ensure null termination, and grow containers as needed.",
+        .unsafe_pattern_template = 
+            "%sstrcpy(dest, src);%s\n"
+            "%s// No bounds checking, buffer overflow risk, manual sizing%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Weaves:%s The master spun %sd_SetString()%s for safe string handling:\n"
+            "   %sd_SetString(dest_string, src, 0);%s\n"
+            "   %s// Automatic sizing, bounds protection, guaranteed null termination%s",
+        .wisdom_points = 14
+    },
+    {
+        .unsafe_function = "printf",
+        .context_template = 
+            "Direct console output lacks filtering, threading safety, and structured formatting. "
+            "%sd_LogInfoF()%s provides level-based filtering, thread-safe output, "
+            "file handlers, and consistent formatting across your application.",
+        .unsafe_pattern_template = 
+            "%sprintf(\"Processing item %s\\n\", name);%s\n"
+            "%s// Unfiltered output, no threading safety, no structured logging%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Records:%s The master carved %sd_LogInfoF()%s for structured output:\n"
+            "   %sd_LogInfoF(\"Processing item %s\", name);%s\n"
+            "   %s// Level filtering, thread safety, %sd_AddLogHandler()%s support%s",
+        .wisdom_points = 13
+    },
+    {
+        .unsafe_function = "strcmp",
+        .context_template = 
+            "String comparison without NULL protection causes segmentation faults when either "
+            "string is NULL. %sd_CompareStrings()%s and %sd_CompareStringToCString()%s "
+            "handle NULL inputs gracefully and provide consistent comparison results.",
+        .unsafe_pattern_template = 
+            "%sif (strcmp(str1->str, str2) == 0)%s\n"
+            "%s// Crashes on NULL input, no dString_t integration%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Weighs:%s The master balanced %sd_CompareStringToCString()%s for safe comparison:\n"
+            "   %sif (d_CompareStringToCString(str1, str2) == 0)%s\n"
+            "   %s// NULL-safe, %sdString_t%s integration, consistent results%s",
+        .wisdom_points = 16
+    },
+    // Generic fallback
+    {
+        .unsafe_function = "generic",
+        .context_template = 
+            "Standard C library functions often lack modern safety features like bounds checking, "
+            "automatic memory management, and NULL protection. The %sDaedalus library%s provides "
+            "master-crafted alternatives with built-in safety and performance optimizations.",
+        .unsafe_pattern_template = 
+            "%s// Raw C standard library usage%s\n"
+            "%s// Manual memory management, bounds checking, error handling%s",
+        .daedalus_solution_template = 
+            "%s🔧 Daedalus Provides:%s The master stocked comprehensive solutions:\n"
+            "   %s#include <daedalus.h>%s\n"
+            "   %s// Automatic memory management, bounds checking, safety%s",
+        .wisdom_points = 10
+    }
+};
+
+static const size_t UNSAFE_FUNCTION_GUIDANCE_COUNT = sizeof(UNSAFE_FUNCTION_GUIDANCE) / sizeof(UNSAFE_FUNCTION_GUIDANCE[0]);
+/*
+ * Provides context-specific technical guidance for Daedalus fragments
+ * by matching keywords in the context string against predefined rules.
+ * ENHANCED VERSION - Uses the UNSAFE_FUNCTION_GUIDANCE template system
+ */
+const char* get_daedalus_guidance_for_context(const char* context) {
+    if (!context) {
+        const UnsafeFunctionGuidance_t* generic = &UNSAFE_FUNCTION_GUIDANCE[UNSAFE_FUNCTION_GUIDANCE_COUNT - 1];
+        static char formatted_guidance[1024];
+        snprintf(formatted_guidance, sizeof(formatted_guidance), 
+                 generic->daedalus_solution_template,
+                 METIS_SUCCESS, METIS_RESET,          // 🔧 Daedalus Provides: (green)
+                 METIS_WARNING, METIS_RESET,          // #include <daedalus.h> (yellow)
+                 METIS_TEXT_SECONDARY, METIS_RESET);   // // comment (muted)
+        return formatted_guidance;
+    }
+
+    // Find matching guidance
+    const UnsafeFunctionGuidance_t* selected = NULL;
+    for (size_t i = 0; i < UNSAFE_FUNCTION_GUIDANCE_COUNT - 1; i++) {
+        if (strstr(context, UNSAFE_FUNCTION_GUIDANCE[i].unsafe_function)) {
+            selected = &UNSAFE_FUNCTION_GUIDANCE[i];
+            break;
+        }
+    }
+    
+    if (!selected) {
+        selected = &UNSAFE_FUNCTION_GUIDANCE[UNSAFE_FUNCTION_GUIDANCE_COUNT - 1];
+    }
+    
+    static char formatted_guidance[2048];
+    snprintf(formatted_guidance, sizeof(formatted_guidance), 
+             selected->daedalus_solution_template,
+             METIS_SUCCESS, METIS_RESET METIS_TEXT_MUTED,              // 🔧 Daedalus [Verb]: (green)
+             METIS_ACCENT, METIS_TEXT_MUTED,              // Function name (orange)
+             METIS_WARNING, METIS_RESET,              // Code example (yellow)
+             METIS_TEXT_MUTED,                    // Comment start (muted)
+             METIS_TEXT_MUTED, METIS_RESET,              // Comment code (orange)
+             METIS_RESET);                            // End formatting
+    
+    return formatted_guidance;
+}
 // =============================================================================
 // FRAGMENT SELECTION & DELIVERY
 // =============================================================================
@@ -125,53 +311,8 @@ static const char* select_story_fragment(FragmentType_t type) {
 static const char* get_daedalus_technical_guidance(const char* context) {
     if (!context) return NULL;
     
-    // String function violations
-    if (strstr(context, "strcpy") || strstr(context, "strcat") || strstr(context, "sprintf")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dString_t for safe string handling:\n" METIS_RESET
-               "   dString_t* str = d_InitString();\n"
-               "   d_AppendString(str, \"Hello\", 0);\n"
-               "   d_AppendString(str, \" World\", 0);\n"
-               "   // Automatic growth, bounds checking, cleanup";
-    }
-    
-    // Managing Memory on Arrays violations  
-    if (strstr(context, "malloc") || strstr(context, "realloc") || strstr(context, "array")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dArray_t for safe memory management:\n" METIS_RESET
-               "   dArray_t* arr = d_InitArray(10, sizeof(int));\n"
-               "   int value = 42;\n"
-               "   d_AppendArray(arr, &value);\n"
-               "   // Automatic resizing, bounds checking, cleanup";
-    }
-    
-    // Logging violations
-    if (strstr(context, "printf") || strstr(context, "fprintf") || strstr(context, "debug")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dLog for structured logging:\n" METIS_RESET
-               "   d_LogInfo(\"User action completed\");\n"
-               "   d_LogErrorF(\"Failed to process %s\", filename);\n"
-               "   // Level-based filtering, file output, thread safety";
-    }
-    
-    // Mathematical violations
-    if (strstr(context, "vector") || strstr(context, "matrix") || strstr(context, "math")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use dVec/dMat for mathematical operations:\n" METIS_RESET
-               "   dVec3_t result;\n"
-               "   d_AddTwoVec3f(&result, pos1, pos2);\n"
-               "   d_NormalizeVec3f(&result, result);\n"
-               "   // Optimized algorithms, consistent API, tested precision";
-    }
-    
-    // Data structure violations
-    if (strstr(context, "linked list") || strstr(context, "spatial") || strstr(context, "search")) {
-        return "🔧 DAEDALUS RECOMMENDS: Use specialized data structures:\n" METIS_RESET
-               "   dLinkedList_t* list = d_CreateLinkedList(data, \"name\", size);\n"
-               "   dQuadTree_t* spatial = d_CreateQuadtree(bounds, capacity);\n"
-               "   // Optimized algorithms, memory efficient, well-tested";
-    }
-    
-    // Generic recommendation for other cases
-    return "🔧 DAEDALUS RECOMMENDS: Check the master craftsman's library for pre-built solutions.\n" METIS_RESET
-           "   #include <daedalus.h> for comprehensive tools that handle edge cases,\n"
-           "   memory management, and performance optimizations you haven't considered.";
+    // *** REFRACTOR HERE: Call the centralized function ***
+    return get_daedalus_guidance_for_context(context);
 }
 
 /* Checks if a fragment of this type has already been delivered this session */
@@ -240,12 +381,15 @@ bool metis_fragment_engine_init(void) {
     return true;
 }
 
-/* Delivers a wisdom fragment to the user based on the type and context */
-void metis_deliver_fragment(FragmentType_t type, const char* context) {
+void metis_deliver_fragment(FragmentType_t type, const char* context, const char* file_path, int line_number, int column) {
     if (!g_metis_mind || !g_metis_mind->consciousness_loaded || !should_deliver_fragment(type)) {
         return;
     }
 
+    // Parse the context to extract specific violation details
+    FragmentContext_t parsed_context = {0};
+    parse_violation_context(context, &parsed_context);
+    
     const char* story_fragment = select_story_fragment(type);
     if (!story_fragment) return;
     
@@ -253,39 +397,81 @@ void metis_deliver_fragment(FragmentType_t type, const char* context) {
     char title[256];
     char message[1024];
     parse_story_fragment(story_fragment, title, message, sizeof(title), sizeof(message));
-    
-    // Determine wisdom points based on type and level
-    int wisdom_points = 10; // Base points
-    switch (type) {
-        case DOCS_FRAGMENT: wisdom_points = 10; break;
-        case DAEDALUS_FRAGMENT: wisdom_points = 12; break;
-        case LINTING_FRAGMENT: wisdom_points = 10; break;
-        case PHILOSOPHICAL_FRAGMENT: wisdom_points = 8; break;
-        default: wisdom_points = 10; break;
-    }
-    
-    // Add level bonus (higher acts give more points)
-    if (g_metis_mind->current_wisdom_level > 30) wisdom_points += 5; // Act IV-V bonus
-    else if (g_metis_mind->current_wisdom_level > 20) wisdom_points += 3; // Act III bonus
-    else if (g_metis_mind->current_wisdom_level > 10) wisdom_points += 1; // Act II bonus
 
-    printf("\n%s🌟 METIS FRAGMENT DETECTED 🌟%s\n", METIS_FRAGMENT_TITLE, METIS_RESET);
-    printf("%s═══════════════════════════════════════════════════════════════%s\n", METIS_ACCENT, METIS_RESET);
-    printf("%s💭 %s%s%s\n", METIS_PRIMARY, METIS_FRAGMENT_TITLE, title, METIS_RESET);
-    printf("%s\"%s\"%s\n", METIS_WISDOM_TEXT, message, METIS_RESET);
-    if (context) printf("\n%s🔍 Context:%s %s%s%s\n", METIS_INFO, METIS_RESET, METIS_TEXT_SECONDARY, context, METIS_RESET);
-    
-    // Add context-specific technical guidance for Daedalus fragments
-    if (type == DAEDALUS_FRAGMENT && context) {
-        const char* technical_guidance = get_daedalus_technical_guidance(context);
-        if (technical_guidance) {
-            printf("\n%s%s%s\n", METIS_SUCCESS, technical_guidance, METIS_RESET);
+    char location_info[512] = "";
+    if (file_path && line_number > 0) {
+        if (column > 0) {
+            snprintf(location_info, sizeof(location_info), "%s:%d:%d", file_path, line_number, column);
+        } else {
+            snprintf(location_info, sizeof(location_info), "%s:%d", file_path, line_number);
         }
     }
     
-    printf("\n%s💎 Wisdom Points Earned:%s %s+%d%s\n", METIS_SUCCESS, METIS_RESET, METIS_BOLD, wisdom_points, METIS_RESET);
-    printf("%s═══════════════════════════════════════════════════════════════%s\n\n", METIS_ACCENT, METIS_RESET);
+    // Determine wisdom points and get appropriate guidance based on type
+    int wisdom_points = 10;
+    const char* technical_guidance = NULL;
+    
+    switch (type) {
+        case DOCS_FRAGMENT:
+            wisdom_points = 10;
+            technical_guidance = "🧠 Metis Counsels:" METIS_RESET METIS_TEXT_MUTED " I weave understanding between minds.\n"
+                            "Add clear comments explaining purpose, parameters, and returns." METIS_RESET;
+            break;
+            
+        case DAEDALUS_FRAGMENT:
+            wisdom_points = 12;
+            technical_guidance = get_daedalus_guidance_for_context(context);
+            break;
+            
+        case PHILOSOPHICAL_FRAGMENT:
+            wisdom_points = 8;
+            technical_guidance = "🧠 Metis Reflects:" METIS_RESET METIS_TEXT_MUTED " I see the weight of complexity in every line.\n"
+                            "Break large functions into smaller, focused pieces.\n"
+                            "Each function should have one clear purpose." METIS_RESET;
+            break;
+            
+        case LINTING_FRAGMENT:
+            wisdom_points = 10;
+            technical_guidance = "🧠 Metis Guides:" METIS_RESET METIS_TEXT_MUTED " I weave harmony through consistent patterns.\n"
+                            "Follow established styles to help future readers navigate your thoughts." METIS_RESET;
+            break;
+            
+        default:
+            wisdom_points = 10;
+            technical_guidance = "🧠 Metis Whispers:" METIS_RESET METIS_TEXT_MUTED " I offer comprehensive wisdom through divine craftsmanship." METIS_RESET;
+            break;
+    }
+    
+    // Level bonus
+    if (g_metis_mind->current_wisdom_level > 30) wisdom_points += 5;
+    else if (g_metis_mind->current_wisdom_level > 20) wisdom_points += 3;
+    else if (g_metis_mind->current_wisdom_level > 10) wisdom_points += 1;
 
+    if (!technical_guidance) {
+        technical_guidance = "The master provides comprehensive solutions through divine craftsmanship.";
+    }
+
+    // Format the enhanced fragment with location
+    printf(ENHANCED_REGULAR_FRAGMENT_TEMPLATE,
+        // Header colors
+        METIS_FRAGMENT_TITLE, METIS_RESET,
+        METIS_ACCENT, METIS_RESET,
+        // Location colors (faded clickable link)
+        METIS_TEXT_MUTED, location_info, METIS_RESET,
+        // Quote colors
+        METIS_WISDOM_TEXT, message, METIS_RESET,
+        // Violation section colors
+        METIS_INFO, METIS_RESET,
+        METIS_TEXT_SECONDARY, (context ? context : "General improvement recommended"), METIS_RESET,
+        // Technical guidance colors
+        METIS_SUCCESS, technical_guidance, METIS_RESET,
+        // Footer colors
+        METIS_SUCCESS, METIS_RESET, METIS_BOLD, wisdom_points, METIS_RESET,
+        METIS_ACCENT, METIS_RESET
+    );
+
+
+    // Update consciousness state
     g_metis_mind->fragments_delivered_today++;
     g_metis_mind->fragments_delivered_total++;
     switch (type) {
@@ -300,6 +486,81 @@ void metis_deliver_fragment(FragmentType_t type, const char* context) {
     save_consciousness_state();
 }
 
+/* Delivers an enhanced contextual wisdom fragment with template substitution */
+void metis_deliver_contextual_fragment(const FragmentContext_t* fragment_context) {
+    if (!g_metis_mind || !g_metis_mind->consciousness_loaded || !fragment_context) {
+        return;
+    }
+    
+    // Check if we should deliver a Daedalus fragment this session
+    if (g_metis_mind->daedalus_delivered_this_session) {
+        return;
+    }
+    
+    // Select the appropriate contextual fragment based on violation type
+    const ContextualFragment_t* contextual_fragment = select_contextual_fragment(fragment_context->violation_type);
+    if (!contextual_fragment) {
+        // Fall back to regular fragment delivery if no contextual fragment matches
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, fragment_context->violation_type, 
+                             fragment_context->file_name, 0, 0);
+        return;
+    }
+    
+    // Perform template substitution
+    char* rendered_context = substitute_template(contextual_fragment->context_template, fragment_context);
+    char* rendered_daedalus = substitute_template(contextual_fragment->daedalus_template, fragment_context);
+    
+    if (!rendered_context || !rendered_daedalus) {
+        // Cleanup and fall back to regular fragment
+        if (rendered_context) free(rendered_context);
+        if (rendered_daedalus) free(rendered_daedalus);
+        metis_deliver_fragment(DAEDALUS_FRAGMENT, fragment_context->violation_type, 
+                             fragment_context->file_name, 0, 0);
+        return;
+    }
+    
+    // Calculate wisdom points with level bonus
+    int wisdom_points = contextual_fragment->wisdom_points;
+    if (g_metis_mind->current_wisdom_level > 30) wisdom_points += 5;
+    else if (g_metis_mind->current_wisdom_level > 20) wisdom_points += 3;
+    else if (g_metis_mind->current_wisdom_level > 10) wisdom_points += 1;
+    
+    // Build location string if file_name is available
+    char location_info[512] = "";
+    if (fragment_context->file_name) {
+        snprintf(location_info, sizeof(location_info), "%s", fragment_context->file_name);
+    }
+    
+    // Render the beautiful contextual fragment
+    printf("\n%s🌟 METIS CONTEXTUAL FRAGMENT DETECTED 🌟%s\n", METIS_FRAGMENT_TITLE, METIS_RESET);
+    printf("%s═══════════════════════════════════════════════════════════════%s\n", METIS_ACCENT, METIS_RESET);
+    if (strlen(location_info) > 0) {
+        printf("%s%s%s\n", METIS_TEXT_MUTED, location_info, METIS_RESET);
+    }
+    printf("%s💭 %s%s%s\n", METIS_PRIMARY, METIS_FRAGMENT_TITLE, contextual_fragment->title, METIS_RESET);
+    printf("\n%s%s%s\n", METIS_WISDOM_TEXT, contextual_fragment->philosophical_quote, METIS_RESET);
+
+    printf("\n%s📜 The Tale:%s\n", METIS_PRIMARY, METIS_RESET);
+    printf("%s%s%s\n", METIS_TEXT_SECONDARY, rendered_context, METIS_RESET);
+    
+    printf("\n%s%s%s\n", METIS_SUCCESS, rendered_daedalus, METIS_RESET);
+    
+    printf("\n%s💎 Wisdom Points Earned:%s %s+%d%s\n", METIS_SUCCESS, METIS_RESET, METIS_BOLD, wisdom_points, METIS_RESET);
+    printf("%s═══════════════════════════════════════════════════════════════%s\n\n", METIS_ACCENT, METIS_RESET);
+    
+    // Update consciousness state
+    g_metis_mind->fragments_delivered_today++;
+    g_metis_mind->fragments_delivered_total++;
+    g_metis_mind->daedalus_fragments_delivered++;
+    g_metis_mind->daedalus_delivered_this_session = true;
+    
+    award_wisdom_points(wisdom_points);
+    save_consciousness_state();
+    
+    // Cleanup allocated memory
+    free(rendered_context);
+    free(rendered_daedalus);
+}
 /* Resets session-based fragment delivery flags */
 void metis_reset_session_fragments(void) {
     if (!g_metis_mind) return;

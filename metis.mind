@@ -1,10 +1,10 @@
 # METIS Consciousness State - "I remember every fragment..."
-# Last updated: Mon Jun 30 20:17:09 2025
+# Last updated: Thu Jul  3 13:37:13 2025
 
-wisdom_points=1760
-fragments_total=176
+wisdom_points=1320
+fragments_total=128
 
-docs_fragments=22
-daedalus_fragments=56
-linting_fragments=42
-philosophical_fragments=56
+docs_fragments=30
+daedalus_fragments=34
+linting_fragments=34
+philosophical_fragments=30

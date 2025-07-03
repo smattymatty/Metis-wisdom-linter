@@ -278,22 +278,22 @@ const char* c_parser_token_type_name(TokenType_t type);
  */
 FunctionInfo_t* c_parser_find_function_at_line(ParsedFile_t* parsed, int line);
 
+
 /*
- * Check if a function has associated documentation
- * Also piss
+ * Check if a specific line contains a text pattern
  *
  * `parsed` - Parsed file structure to search
- * `func_name` - Function name to check (must be null-terminated)
+ * `line` - Line number to check (1-based)
+ * `pattern` - Text pattern to search for (must be null-terminated)
  *
- * `bool` - true if function has documentation, false otherwise
+ * `bool` - true if pattern found on line, false otherwise
  *
- * -- Returns false if parsed or func_name is NULL, or function not found
- * -- Searches for comments within 5 lines before function definition
- * -- Recognizes both line comments (//) and block comments
- * -- Updates function's has_documentation flag when documentation found
- * -- Core function for documentation linting and completeness analysis
- * -- Used to identify undocumented public functions
- */
+ * -- Returns false if parsed or pattern is NULL
+ * -- Searches through all tokens on the specified line
+ * -- Uses substring matching (strstr) for flexible pattern detection
+ * -- Case-sensitive pattern matching
+ * -- Used for custom linting rules and pattern-based analysis
+*/
 bool c_parser_has_documentation_for_function(ParsedFile_t* parsed, const char* func_name);
 
 /*
@@ -312,6 +312,29 @@ bool c_parser_has_documentation_for_function(ParsedFile_t* parsed, const char* f
  * -- Used for custom linting rules and pattern-based analysis
  */
 bool c_parser_line_has_pattern(ParsedFile_t* parsed, int line, const char* pattern);
+
+/**
+ * @brief Represents an unsafe strcmp usage with dString_t->str.
+ */
+typedef struct {
+    int line;
+    int column;
+    bool is_dstring_vs_cstring;
+    bool is_dstring_vs_dstring;
+    char function_name[128];    // Function where the violation occurred
+    char variable1[64];         // First variable name (e.g., "player->str")
+    char variable2[64];         // Second variable name (e.g., "\"Minos\"")
+} UnsafeStrcmpUsage_t;
+
+/**
+ * @brief Detects unsafe strcmp usage with dString_t->str.
+ *
+ * @param parsed The parsed file structure.
+ * @param usages A pointer to a dynamically allocated array of UnsafeStrcmpUsage_t.
+ * @param count The number of usages found.
+ * @return true if unsafe usages were found, false otherwise.
+ */
+bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed, UnsafeStrcmpUsage_t** usages, int* count);
 
 /*
  * Analyze function complexity with mathematical precision for philosophical guidance
@@ -367,7 +390,7 @@ bool c_parser_has_proper_filename_header(ParsedFile_t* parsed, const char* expec
  * -- Essential for maintaining philosophical depth in code documentation
  * -- Fails if significant code appears before finding second comment
  */
-bool c_parser_has_proper_wisdom_header(ParsedFile_t* parsed);
+bool c_parser_has_proper_purpose_line(ParsedFile_t* parsed);
 
 /*
  * Extract filename from full file path for header validation
@@ -446,5 +469,15 @@ char* c_parser_extract_function_description(ParsedFile_t* parsed, const char* fu
  * -- Essential for maintaining single source of truth for function descriptions
  */
 bool c_parser_implementation_matches_header(ParsedFile_t* parsed, const char* func_name, const char* expected_description);
+
+
+bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
+                                                 UnsafeStrcmpUsage_t** usages_out,
+                                                 int* count_out);
+
+// Helper functions for unsafe strcmp detection
+void c_parser_find_containing_function(ParsedFile_t* parsed, int line, char* function_name, size_t name_size);
+void extract_strcmp_variable_names(ParsedFile_t* parsed, int start_idx, int comma_idx, int end_idx,
+                                  char* variable1, size_t var1_size, char* variable2, size_t var2_size);
 
 #endif /* C_PARSER_H */

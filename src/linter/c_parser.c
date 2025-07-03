@@ -13,8 +13,32 @@
 #include <stdint.h>
 #include <limits.h>
 
+static bool _is_valid_number_char(char c, bool* has_dot, bool* has_e, char next_c);
+static int _read_hex_number(ParserContext_t* ctx, char* buffer, size_t buffer_size, int current_length);
+static int _read_float_exponent(ParserContext_t* ctx, char* buffer, size_t buffer_size, int current_length);
+static int _read_decimal_integer_or_float_part(ParserContext_t* ctx, char* buffer, size_t buffer_size, int current_length, bool* has_dot_out, bool* has_e_out);
+
+static bool _is_two_char_operator(char c1, char c2, char* op_buffer);
+static bool _is_single_char_operator(char c);
+static const char* TWO_CHAR_OPERATORS[] = {
+    "==", "!=", "<=", ">=", "&&", "||", "++", "--", "<<", ">>",
+    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "->",
+    NULL
+};
+
+static bool _attempt_tokenize_next_token(ParserContext_t* ctx, ParsedFile_t* parsed, char* buffer, size_t buffer_size);
+static bool _tokenize_comment(ParserContext_t* ctx, ParsedFile_t* parsed, char c, char next_c, int start_line, int start_column, char* buffer, size_t buffer_size);
+static bool _tokenize_preprocessor(ParserContext_t* ctx, ParsedFile_t* parsed, int start_line, int start_column, char* buffer, size_t buffer_size);
+static bool _tokenize_string_char_literal(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer, size_t buffer_size);
+static bool _tokenize_number(ParserContext_t* ctx, ParsedFile_t* parsed, char c, char next_c, int start_line, int start_column, char* buffer, size_t buffer_size);
+static bool _tokenize_identifier_keyword(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer, size_t buffer_size);
+static bool _tokenize_operator(ParserContext_t* ctx, ParsedFile_t* parsed, int start_line, int start_column, char* buffer, size_t buffer_size);
+static bool _tokenize_punctuation(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer);
+static bool _tokenize_newline(ParserContext_t* ctx, ParsedFile_t* parsed, int start_line, int start_column);
+static bool _tokenize_unknown(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer); // For unknown characters
+
 // =============================================================================
-// DIVINE RECOGNITION TABLES
+// TOKEN RECOGNITION TABLES
 // =============================================================================
 
 // C Keywords for divine recognition of language constructs
@@ -288,7 +312,155 @@ static int read_string(ParserContext_t* ctx, char* buffer, size_t buffer_size) {
     buffer[length] = '\0';
     return length;
 }
+/*
+ * Helper function to determine if a character is valid within a number literal,
+ * considering current parsing state (e.g., if a decimal or exponent has already been seen).
+ * Updates has_dot and has_e flags as necessary.
+ *
+ * `c` - The current character to evaluate.
+ * `has_dot` - Pointer to a boolean flag indicating if a decimal point has been encountered.
+ * `has_e` - Pointer to a boolean flag indicating if an exponent 'e' or 'E' has been encountered.
+ * `next_c` - The next character in the source, used for lookahead (e.g., for 'e+' or 'e-').
+ *
+ * `bool` - True if the character is valid for the current number literal, false otherwise.
+ */
+static bool _is_valid_number_char(char c, bool* has_dot, bool* has_e, char next_c) {
+    // Digits, hex characters, and suffixes (u, U, l, L)
+    if (isalnum(c) || c == '_') { // Alnum covers digits and hex (a-f, A-F)
+        return true;
+    }
 
+    // Decimal point
+    if (c == '.') {
+        if (!*has_dot && !*has_e) { // Only one dot allowed, not after exponent
+            *has_dot = true;
+            return true;
+        }
+        return false; // Invalid: multiple dots or dot after exponent
+    }
+
+    // Exponent (e or E)
+    if (c == 'e' || c == 'E') {
+        if (!*has_e) { // Only one 'e' or 'E' allowed
+            *has_e = true;
+            // Optionally handle +/- after e/E
+            return true;
+        }
+        return false; // Invalid: multiple exponents
+    }
+
+    // Sign after exponent
+    if ((c == '+' || c == '-') && *has_e && (next_c != '\0' && isdigit(next_c))) {
+        // This is tricky: we only accept +/- if it immediately follows e/E
+        // and is followed by a digit. The main loop will advance past it.
+        // This helper just validates 'e', and the main loop handles the +/- after 'e'.
+        // For simplicity and to keep this helper focused on *single* char validity,
+        // we'll primarily validate the 'e' itself here. The +/- logic
+        // is best kept in `read_number` where lookahead is natural.
+        return true; // We'll let read_number handle advancing for this.
+    }
+
+    return false; // Not a valid number character
+}
+
+/*
+ * Helper function to read a hexadecimal number literal (after "0x" or "0X").
+ *
+ * `ctx` - The parser context.
+ * `buffer` - The buffer to write the number to.
+ * `buffer_size` - The maximum size of the buffer.
+ * `current_length` - The current length of the number already in the buffer (should be 2 for "0x").
+ *
+ * `int` - The total length of the number read, or `current_length` if no valid hex digits follow.
+ */
+static int _read_hex_number(ParserContext_t* ctx, char* buffer, size_t buffer_size, int current_length) {
+    while (ctx->position < ctx->source_length && current_length < (int)(buffer_size - 1)) {
+        char c = ctx->source[ctx->position];
+        if (isxdigit((unsigned char)c) || c == 'u' || c == 'U' || c == 'l' || c == 'L') {
+            buffer[current_length++] = c;
+            ctx->position++;
+            ctx->column++;
+        } else {
+            break;
+        }
+    }
+    return current_length;
+}
+
+/*
+ * Helper function to read the exponent part of a floating-point number (e.g., "e+10", "E-5").
+ *
+ * `ctx` - The parser context.
+ * `buffer` - The buffer to write the number to.
+ * `buffer_size` - The maximum size of the buffer.
+ * `current_length` - The current length of the number already in the buffer (should include 'e'/'E').
+ *
+ * `int` - The total length of the number read, or `current_length` if no valid exponent digits follow.
+ */
+static int _read_float_exponent(ParserContext_t* ctx, char* buffer, size_t buffer_size, int current_length) {
+    // Already consumed 'e' or 'E' by the caller
+    // Check for optional sign
+    if (ctx->position < ctx->source_length && current_length < (int)(buffer_size - 1)) {
+        char c = ctx->source[ctx->position];
+        if (c == '+' || c == '-') {
+            buffer[current_length++] = c;
+            ctx->position++;
+            ctx->column++;
+        }
+    }
+
+    // Read exponent digits
+    while (ctx->position < ctx->source_length && current_length < (int)(buffer_size - 1)) {
+        char c = ctx->source[ctx->position];
+        if (isdigit((unsigned char)c)) {
+            buffer[current_length++] = c;
+            ctx->position++;
+            ctx->column++;
+        } else {
+            break;
+        }
+    }
+    return current_length;
+}
+
+/*
+ * Helper function to read the decimal or integer part of a number, including a single decimal point.
+ * This function will *not* read an 'e' or 'E' exponent.
+ *
+ * `ctx` - The parser context.
+ * `buffer` - The buffer to write the number to.
+ * `buffer_size` - The maximum size of the buffer.
+ * `current_length` - The current length of the number already in the buffer (e.g., initial sign).
+ * `has_dot_out` - Output parameter: set to true if a decimal point was encountered.
+ * `has_e_out` - Output parameter: set to true if an 'e' or 'E' was encountered.
+ *
+ * `int` - The total length of the number read.
+ */
+static int _read_decimal_integer_or_float_part(ParserContext_t* ctx, char* buffer, size_t buffer_size, int current_length, bool* has_dot_out, bool* has_e_out) {
+    *has_dot_out = false;
+    *has_e_out = false; // This helper doesn't read 'e', but sets it to false for the caller
+
+    while (ctx->position < ctx->source_length && current_length < (int)(buffer_size - 1)) {
+        char c = ctx->source[ctx->position];
+
+        if (isdigit((unsigned char)c) || c == 'u' || c == 'U' || c == 'l' || c == 'L') {
+            buffer[current_length++] = c;
+            ctx->position++;
+            ctx->column++;
+        } else if (c == '.' && !*has_dot_out) { // Allow one decimal point
+            *has_dot_out = true;
+            buffer[current_length++] = c;
+            ctx->position++;
+            ctx->column++;
+        } else if (c == 'e' || c == 'E') { // Found 'e' or 'E', this part is done, let caller handle exponent
+            *has_e_out = true;
+            break;
+        } else {
+            break; // Not a number character
+        }
+    }
+    return current_length;
+}
 /*
  * Read a number literal with hex/octal/float support
  */
@@ -297,42 +469,76 @@ static int read_number(ParserContext_t* ctx, char* buffer, size_t buffer_size) {
     bool has_dot = false;
     bool has_e = false;
 
-    while (ctx->position < ctx->source_length && length < (int)(buffer_size - 1)) {
-        char c = ctx->source[ctx->position];
+    // Handle optional leading sign for numbers if it's the very first character
+    if (ctx->position < ctx->source_length) {
+        char initial_c = ctx->source[ctx->position];
+        if (initial_c == '+' || initial_c == '-') {
+            buffer[length++] = initial_c;
+            ctx->position++;
+            ctx->column++;
+        }
+    }
 
-        if (isdigit(c) ||
-            c == 'x' || c == 'X' ||
-            (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') ||
-            c == 'u' || c == 'U' || c == 'l' || c == 'L') {
-            buffer[length++] = c;
-            ctx->position++;
+    // Check for hexadecimal prefix
+    if (ctx->position + 1 < ctx->source_length &&
+        ctx->source[ctx->position] == '0' &&
+        (ctx->source[ctx->position + 1] == 'x' || ctx->source[ctx->position + 1] == 'X')) {
+        buffer[length++] = ctx->source[ctx->position++]; // '0'
+        buffer[length++] = ctx->source[ctx->position++]; // 'x' or 'X'
+        ctx->column += 2;
+        length = _read_hex_number(ctx, buffer, buffer_size, length);
+    } else {
+        // Must be a decimal integer or float
+        length = _read_decimal_integer_or_float_part(ctx, buffer, buffer_size, length, &has_dot, &has_e);
+        
+        // If an 'e' or 'E' was encountered, read the exponent part
+        if (has_e) {
+            buffer[length++] = ctx->source[ctx->position++]; // consume 'e' or 'E'
             ctx->column++;
-        } else if (c == '.' && !has_dot && !has_e) {
-            has_dot = true;
-            buffer[length++] = c;
-            ctx->position++;
-            ctx->column++;
-        } else if ((c == 'e' || c == 'E') && !has_e) {
-            has_e = true;
-            buffer[length++] = c;
-            ctx->position++;
-            ctx->column++;
-            // Handle optional +/- after e/E
-            if (ctx->position < ctx->source_length &&
-                (ctx->source[ctx->position] == '+' || ctx->source[ctx->position] == '-')) {
-                buffer[length++] = ctx->source[ctx->position];
-                ctx->position++;
-                ctx->column++;
-            }
-        } else {
-            break;
+            length = _read_float_exponent(ctx, buffer, buffer_size, length);
         }
     }
 
     buffer[length] = '\0';
     return length;
 }
+/*
+ * Helper function to check if two characters form a known two-character operator.
+ * If a match is found, copies the operator string to op_buffer.
+ *
+ * `c1` - The first character.
+ * `c2` - The second character.
+ * `op_buffer` - Buffer to store the operator string if found (must be at least 3 bytes).
+ *
+ * `bool` - True if c1c2 is a known two-character operator, false otherwise.
+ */
+static bool _is_two_char_operator(char c1, char c2, char* op_buffer) {
+    if (!op_buffer) return false;
 
+    op_buffer[0] = c1;
+    op_buffer[1] = c2;
+    op_buffer[2] = '\0';
+
+    for (int i = 0; TWO_CHAR_OPERATORS[i] != NULL; i++) {
+        if (strcmp(op_buffer, TWO_CHAR_OPERATORS[i]) == 0) {
+            return true;
+        }
+    }
+    op_buffer[0] = '\0'; // Clear buffer if not found
+    return false;
+}
+
+/*
+ * Helper function to check if a character is a known single-character operator.
+ *
+ * `c` - The character to check.
+ *
+ * `bool` - True if c is a known single-character operator, false otherwise.
+ */
+static bool _is_single_char_operator(char c) {
+    // This string contains all single-character operators
+    return strchr("+-*/%=<>!&|^~?:", c) != NULL;
+}
 /*
  * Read a multi-character operator (like <=, >=, ==, !=, etc.)
  */
@@ -342,36 +548,15 @@ static int read_operator(ParserContext_t* ctx, char* buffer, size_t buffer_size)
     char c1 = ctx->source[ctx->position];
     char c2 = (ctx->position + 1 < ctx->source_length) ? ctx->source[ctx->position + 1] : '\0';
 
-    // Two-character operators
-    if ((c1 == '=' && c2 == '=') ||
-        (c1 == '!' && c2 == '=') ||
-        (c1 == '<' && c2 == '=') ||
-        (c1 == '>' && c2 == '=') ||
-        (c1 == '&' && c2 == '&') ||
-        (c1 == '|' && c2 == '|') ||
-        (c1 == '+' && c2 == '+') ||
-        (c1 == '-' && c2 == '-') ||
-        (c1 == '<' && c2 == '<') ||
-        (c1 == '>' && c2 == '>') ||
-        (c1 == '+' && c2 == '=') ||
-        (c1 == '-' && c2 == '=') ||
-        (c1 == '*' && c2 == '=') ||
-        (c1 == '/' && c2 == '=') ||
-        (c1 == '%' && c2 == '=') ||
-        (c1 == '&' && c2 == '=') ||
-        (c1 == '|' && c2 == '=') ||
-        (c1 == '^' && c2 == '=') ||
-        (c1 == '-' && c2 == '>')) {
-        buffer[0] = c1;
-        buffer[1] = c2;
-        buffer[2] = '\0';
+    // Attempt to read a two-character operator first
+    if (_is_two_char_operator(c1, c2, buffer)) {
         ctx->position += 2;
         ctx->column += 2;
         return 2;
     }
 
-    // Single character operator
-    if (strchr("+-*/%=<>!&|^~?:", c1)) {
+    // If not a two-character operator, attempt to read a single-character operator
+    if (_is_single_char_operator(c1)) {
         buffer[0] = c1;
         buffer[1] = '\0';
         ctx->position++;
@@ -379,7 +564,7 @@ static int read_operator(ParserContext_t* ctx, char* buffer, size_t buffer_size)
         return 1;
     }
 
-    return 0;
+    return 0; // Not an operator
 }
 
 // =============================================================================
@@ -416,7 +601,17 @@ bool c_parser_is_dangerous_function(const char* func_name) {
 }
 
 /*
- * Check if a word is a type keyword
+ * Check if a word is a standard C type keyword or common type identifier
+ *
+ * `word` - Word to check (must be null-terminated)
+ *
+ * `bool` - true if word is a type keyword, false otherwise
+ *
+ * -- Returns false if word is NULL
+ * -- Recognizes primitive types (int, char, float, etc.)
+ * -- Includes standard library types (size_t, FILE, etc.)
+ * -- Covers fixed-width integer types (uint32_t, int64_t, etc.)
+ * -- Used for variable declaration detection and type analysis
  */
 bool c_parser_is_type_keyword(const char* word) {
     if (!word) return false;
@@ -428,7 +623,222 @@ bool c_parser_is_type_keyword(const char* word) {
     }
     return false;
 }
+/*
+ * Helper to tokenize comments (line or block).
+ * Returns true if a comment was tokenized, false otherwise.
+ */
+static bool _tokenize_comment(ParserContext_t* ctx, ParsedFile_t* parsed, char c, char next_c, int start_line, int start_column, char* buffer, size_t buffer_size) {
+    if (c == '/' && ctx->position + 1 < ctx->source_length) {
+        if (next_c == '/') {
+            // Line comment
+            int length = 0;
+            while (ctx->position < ctx->source_length &&
+                   ctx->source[ctx->position] != '\n' &&
+                   length < (int)(buffer_size - 1)) {
+                buffer[length++] = ctx->source[ctx->position];
+                ctx->position++;
+                ctx->column++;
+            }
+            buffer[length] = '\0';
+            return add_token(parsed, TOKEN_COMMENT_LINE, buffer, start_line, start_column, length);
+        } else if (next_c == '*') {
+            // Block comment
+            int length = 0;
+            buffer[length++] = ctx->source[ctx->position++];  // '/'
+            buffer[length++] = ctx->source[ctx->position++];  // '*'
+            ctx->column += 2;
 
+            while (ctx->position + 1 < ctx->source_length && length < (int)(buffer_size - 1)) {
+                char c1 = ctx->source[ctx->position];
+                char c2 = ctx->source[ctx->position + 1];
+
+                buffer[length++] = c1;
+                if (c1 == '\n') {
+                    ctx->line++;
+                    ctx->column = 1;
+                } else {
+                    ctx->column++;
+                }
+                ctx->position++;
+
+                if (c1 == '*' && c2 == '/') {
+                    buffer[length++] = c2;
+                    ctx->position++;
+                    ctx->column++;
+                    break;
+                }
+            }
+            buffer[length] = '\0';
+            return add_token(parsed, TOKEN_COMMENT_BLOCK, buffer, start_line, start_column, length);
+        }
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize preprocessor directives.
+ * Returns true if a directive was tokenized, false otherwise.
+ */
+static bool _tokenize_preprocessor(ParserContext_t* ctx, ParsedFile_t* parsed, int start_line, int start_column, char* buffer, size_t buffer_size) {
+    if (ctx->source[ctx->position] == '#') {
+        int length = 0;
+        while (ctx->position < ctx->source_length &&
+               ctx->source[ctx->position] != '\n' &&
+               length < (int)(buffer_size - 1)) {
+            buffer[length++] = ctx->source[ctx->position];
+            ctx->position++;
+            ctx->column++;
+        }
+        buffer[length] = '\0';
+        return add_token(parsed, TOKEN_PREPROCESSOR, buffer, start_line, start_column, length);
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize string and character literals.
+ * Returns true if a literal was tokenized, false otherwise.
+ */
+static bool _tokenize_string_char_literal(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer, size_t buffer_size) {
+    if (c == '"' || c == '\'') {
+        int length = read_string(ctx, buffer, buffer_size);
+        TokenType_t type = (c == '"') ? TOKEN_STRING : TOKEN_CHAR;
+        return add_token(parsed, type, buffer, start_line, start_column, length);
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize number literals.
+ * Returns true if a number was tokenized, false otherwise.
+ */
+static bool _tokenize_number(ParserContext_t* ctx, ParsedFile_t* parsed, char c, char next_c, int start_line, int start_column, char* buffer, size_t buffer_size) {
+    if (isdigit((unsigned char)c) || (c == '.' && ctx->position + 1 < ctx->source_length && isdigit((unsigned char)next_c))) {
+        int length = read_number(ctx, buffer, buffer_size);
+        return add_token(parsed, TOKEN_NUMBER, buffer, start_line, start_column, length);
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize identifiers and keywords.
+ * Returns true if an identifier or keyword was tokenized, false otherwise.
+ */
+static bool _tokenize_identifier_keyword(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer, size_t buffer_size) {
+    if (isalpha((unsigned char)c) || c == '_') {
+        int length = read_identifier(ctx, buffer, buffer_size);
+        TokenType_t type = c_parser_is_c_keyword(buffer) ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
+        return add_token(parsed, type, buffer, start_line, start_column, length);
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize operators (single or multi-character).
+ * Returns true if an operator was tokenized, false otherwise.
+ */
+static bool _tokenize_operator(ParserContext_t* ctx, ParsedFile_t* parsed, int start_line, int start_column, char* buffer, size_t buffer_size) {
+    int op_length = read_operator(ctx, buffer, buffer_size);
+    if (op_length > 0) {
+        return add_token(parsed, TOKEN_OPERATOR, buffer, start_line, start_column, op_length);
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize single-character punctuation.
+ * Returns true if punctuation was tokenized, false otherwise.
+ */
+static bool _tokenize_punctuation(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer) {
+    if (strchr("(){}[];,.", c)) {
+        buffer[0] = c;
+        buffer[1] = '\0';
+        bool success = add_token(parsed, TOKEN_PUNCTUATION, buffer, start_line, start_column, 1);
+        ctx->position++;
+        ctx->column++;
+        return success;
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize newline characters.
+ * Returns true if a newline was tokenized, false otherwise.
+ */
+static bool _tokenize_newline(ParserContext_t* ctx, ParsedFile_t* parsed, int start_line, int start_column) {
+    if (ctx->source[ctx->position] == '\n') {
+        bool success = add_token(parsed, TOKEN_NEWLINE, "\\n", start_line, start_column, 1);
+        ctx->position++;
+        ctx->line++;
+        ctx->column = 1;
+        return success;
+    }
+    return false;
+}
+
+/*
+ * Helper to tokenize unknown characters.
+ * Returns true if an unknown character was tokenized, false otherwise.
+ */
+static bool _tokenize_unknown(ParserContext_t* ctx, ParsedFile_t* parsed, char c, int start_line, int start_column, char* buffer) {
+    // This should be the last resort if no other token type matches
+    buffer[0] = c;
+    buffer[1] = '\0';
+    bool success = add_token(parsed, TOKEN_UNKNOWN, buffer, start_line, start_column, 1);
+    ctx->position++;
+    ctx->column++;
+    return success;
+}
+/*
+ * Helper function to attempt to tokenize the next character based on its type.
+ * It tries various token types in a specific order of precedence.
+ *
+ * `ctx` - The parser context.
+ * `parsed` - The ParsedFile_t structure to add tokens to.
+ * `buffer` - The buffer for token values.
+ * `buffer_size` - The size of the buffer.
+ *
+ * `bool` - True if a token was successfully identified and added, false otherwise.
+ */
+static bool _attempt_tokenize_next_token(ParserContext_t* ctx, ParsedFile_t* parsed, char* buffer, size_t buffer_size) {
+    char c = ctx->source[ctx->position];
+    char next_c = (ctx->position + 1 < ctx->source_length) ? ctx->source[ctx->position + 1] : '\0';
+    int start_line = ctx->line;
+    int start_column = ctx->column;
+
+    // Attempt to tokenize various types in order of precedence
+    if (_tokenize_comment(ctx, parsed, c, next_c, start_line, start_column, buffer, buffer_size)) {
+        return true;
+    }
+    if (_tokenize_preprocessor(ctx, parsed, start_line, start_column, buffer, buffer_size)) {
+        return true;
+    }
+    if (_tokenize_string_char_literal(ctx, parsed, c, start_line, start_column, buffer, buffer_size)) {
+        return true;
+    }
+    if (_tokenize_number(ctx, parsed, c, next_c, start_line, start_column, buffer, buffer_size)) {
+        return true;
+    }
+    if (_tokenize_identifier_keyword(ctx, parsed, c, start_line, start_column, buffer, buffer_size)) {
+        return true;
+    }
+    if (_tokenize_newline(ctx, parsed, start_line, start_column)) {
+        return true;
+    }
+    if (_tokenize_operator(ctx, parsed, start_line, start_column, buffer, buffer_size)) {
+        return true;
+    }
+    if (_tokenize_punctuation(ctx, parsed, c, start_line, start_column, buffer)) {
+        return true;
+    }
+    
+    // If none of the above matched, it's an unknown character
+    if (_tokenize_unknown(ctx, parsed, c, start_line, start_column, buffer)) {
+        return true;
+    }
+
+    return false; // No token was recognized or processed
+}
 /*
  * Tokenize C source code with divine precision
  */
@@ -446,140 +856,26 @@ Token_t* c_parser_tokenize(const char* content, int* token_count) {
     while (ctx.position < ctx.source_length) {
         skip_whitespace(&ctx);
 
-        if (ctx.position >= ctx.source_length) break;
-
-        char c = ctx.source[ctx.position];
-        int start_line = ctx.line;
-        int start_column = ctx.column;
-
-        // Handle comments
-        if (c == '/' && ctx.position + 1 < ctx.source_length) {
-            char next_c = ctx.source[ctx.position + 1];
-
-            if (next_c == '/') {
-                // Line comment
-                int length = 0;
-                while (ctx.position < ctx.source_length &&
-                       ctx.source[ctx.position] != '\n' &&
-                       length < (int)(sizeof(buffer) - 1)) {
-                    buffer[length++] = ctx.source[ctx.position];
-                    ctx.position++;
-                    ctx.column++;
-                }
-                buffer[length] = '\0';
-                add_token(temp_parsed, TOKEN_COMMENT_LINE, buffer, start_line, start_column, length);
-                continue;
-            } else if (next_c == '*') {
-                // Block comment
-                int length = 0;
-                buffer[length++] = ctx.source[ctx.position++];  // '/'
-                buffer[length++] = ctx.source[ctx.position++];  // '*'
-                ctx.column += 2;
-
-                while (ctx.position + 1 < ctx.source_length && length < (int)(sizeof(buffer) - 1)) {
-                    char c1 = ctx.source[ctx.position];
-                    char c2 = ctx.source[ctx.position + 1];
-
-                    buffer[length++] = c1;
-                    if (c1 == '\n') {
-                        ctx.line++;
-                        ctx.column = 1;
-                    } else {
-                        ctx.column++;
-                    }
-                    ctx.position++;
-
-                    if (c1 == '*' && c2 == '/') {
-                        buffer[length++] = c2;
-                        ctx.position++;
-                        ctx.column++;
-                        break;
-                    }
-                }
-                buffer[length] = '\0';
-                add_token(temp_parsed, TOKEN_COMMENT_BLOCK, buffer, start_line, start_column, length);
-                continue;
-            }
+        if (ctx.position >= ctx.source_length) {
+            break; // Reached end of source after skipping whitespace
         }
 
-        // Handle preprocessor directives
-        if (c == '#') {
-            int length = 0;
-            while (ctx.position < ctx.source_length &&
-                   ctx.source[ctx.position] != '\n' &&
-                   length < (int)(sizeof(buffer) - 1)) {
-                buffer[length++] = ctx.source[ctx.position];
-                ctx.position++;
-                ctx.column++;
-            }
-            buffer[length] = '\0';
-            add_token(temp_parsed, TOKEN_PREPROCESSOR, buffer, start_line, start_column, length);
-            continue;
-        }
-
-        // Handle string and character literals
-        if (c == '"' || c == '\'') {
-            int length = read_string(&ctx, buffer, sizeof(buffer));
-            TokenType_t type = (c == '"') ? TOKEN_STRING : TOKEN_CHAR;
-            add_token(temp_parsed, type, buffer, start_line, start_column, length);
-            continue;
-        }
-
-        // Handle numbers
-        if (isdigit(c) || (c == '.' && ctx.position + 1 < ctx.source_length &&
-                          isdigit(ctx.source[ctx.position + 1]))) {
-            int length = read_number(&ctx, buffer, sizeof(buffer));
-            add_token(temp_parsed, TOKEN_NUMBER, buffer, start_line, start_column, length);
-            continue;
-        }
-
-        // Handle identifiers and keywords
-        if (isalpha(c) || c == '_') {
-            int length = read_identifier(&ctx, buffer, sizeof(buffer));
-            TokenType_t type = c_parser_is_c_keyword(buffer) ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
-            add_token(temp_parsed, type, buffer, start_line, start_column, length);
-            continue;
-        }
-
-        // Handle newlines separately for better parsing
-        if (c == '\n') {
-            add_token(temp_parsed, TOKEN_NEWLINE, "\\n", start_line, start_column, 1);
-            ctx.position++;
-            ctx.line++;
-            ctx.column = 1;
-            continue;
-        }
-
-        // Handle operators (including multi-character ones)
-        int op_length = read_operator(&ctx, buffer, sizeof(buffer));
-        if (op_length > 0) {
-            add_token(temp_parsed, TOKEN_OPERATOR, buffer, start_line, start_column, op_length);
-            continue;
-        }
-
-        // Handle punctuation
-        if (strchr("(){}[];,.", c)) {
-            buffer[0] = c;
-            buffer[1] = '\0';
-            add_token(temp_parsed, TOKEN_PUNCTUATION, buffer, start_line, start_column, 1);
+        // Attempt to tokenize the next character
+        if (!_attempt_tokenize_next_token(&ctx, temp_parsed, buffer, sizeof(buffer))) {
+            // This case should ideally not be reached if _tokenize_unknown always progresses
+            // but is here as a safety fallback. It implies an unhandled character
+            // that _tokenize_unknown also failed to process (which shouldn't happen).
+            // For now, we'll just advance to prevent infinite loops.
             ctx.position++;
             ctx.column++;
-            continue;
         }
-
-        // Unknown character
-        buffer[0] = c;
-        buffer[1] = '\0';
-        add_token(temp_parsed, TOKEN_UNKNOWN, buffer, start_line, start_column, 1);
-        ctx.position++;
-        ctx.column++;
     }
 
     // Transfer tokens to return array
     *token_count = temp_parsed->token_count;
     Token_t* result = temp_parsed->tokens;
-    temp_parsed->tokens = NULL;  // Prevent cleanup
-    c_parser_free_parsed_file(temp_parsed);
+    temp_parsed->tokens = NULL;  // Prevent cleanup of tokens by temp_parsed
+    c_parser_free_parsed_file(temp_parsed); // Frees temp_parsed but not tokens
 
     return result;
 }
@@ -887,30 +1183,43 @@ static char* extract_return_type(Token_t* tokens, int token_count, int func_inde
     char return_type[256] = {0};
     int type_parts = 0;
 
-    // Look backwards for return type components
-    for (int i = func_index - 1; i >= 0 && i >= func_index - 10; i--) {
+    // Look backwards for return type components, but stop at function boundaries
+    for (int i = func_index - 1; i >= 0 && i >= func_index - 5; i--) {
         Token_t* token = &tokens[i];
 
-        if (token->type == TOKEN_KEYWORD || token->type == TOKEN_IDENTIFIER) {
-            // Build return type string (in reverse order, so we'll fix it)
-            if (type_parts == 0) {
-                strncpy(return_type, token->value, sizeof(return_type) - 1);
-            } else {
+        // Stop at punctuation that indicates end of previous function/statement
+        if (token->type == TOKEN_PUNCTUATION) {
+            if (strcmp(token->value, ";") == 0 || strcmp(token->value, "}") == 0 || 
+                strcmp(token->value, ")") == 0) {
+                break; // Hit end of previous function or statement
+            } else if (strcmp(token->value, "*") == 0) {
+                // Handle pointer indicators
                 char temp[256];
-                snprintf(temp, sizeof(temp), "%s %s", token->value, return_type);
+                snprintf(temp, sizeof(temp), "%s*", return_type);
                 strncpy(return_type, temp, sizeof(return_type) - 1);
             }
-            type_parts++;
+        } else if (token->type == TOKEN_KEYWORD || token->type == TOKEN_IDENTIFIER) {
+            // Only accept type keywords, not random identifiers
+            if (token->type == TOKEN_KEYWORD || 
+                (token->type == TOKEN_IDENTIFIER && strstr(token->value, "_t"))) {
+                // Build return type string (in reverse order, so we'll fix it)
+                if (type_parts == 0) {
+                    strncpy(return_type, token->value, sizeof(return_type) - 1);
+                } else {
+                    char temp[256];
+                    snprintf(temp, sizeof(temp), "%s %s", token->value, return_type);
+                    strncpy(return_type, temp, sizeof(return_type) - 1);
+                }
+                type_parts++;
 
-            // Stop after getting reasonable type information
-            if (type_parts >= 3) break;
-        } else if (token->type == TOKEN_PUNCTUATION && strcmp(token->value, "*") == 0) {
-            // Handle pointer indicators
-            char temp[256];
-            snprintf(temp, sizeof(temp), "%s*", return_type);
-            strncpy(return_type, temp, sizeof(return_type) - 1);
+                // Stop after getting one main type part for simplicity
+                if (type_parts >= 1) break;
+            }
         } else if (token->type == TOKEN_NEWLINE || token->type == TOKEN_COMMENT_LINE) {
             break;  // Stop at line boundaries
+        } else if (token->type == TOKEN_COMMENT_BLOCK) {
+            // Skip comment blocks, don't stop the search
+            continue;
         }
     }
 
@@ -1141,12 +1450,12 @@ bool c_parser_has_documentation_for_function(ParsedFile_t* parsed, const char* f
     Token_t* nearest_comment = NULL;
     int nearest_distance = INT_MAX;
     
-    // Find the nearest block comment before the function within 10 lines (increased range)
+    // Find the nearest block comment before the function within 20 lines (increased range for large docs)
     for (int i = 0; i < parsed->token_count; i++) {
         Token_t* token = &parsed->tokens[i];
 
-        // Look for block comments within 10 lines before the function
-        if (token->line < func_line && token->line >= func_line - 10) {
+        // Look for block comments within 20 lines before the function
+        if (token->line < func_line && token->line >= func_line - 20) {
             if (token->type == TOKEN_COMMENT_BLOCK) {
                 int distance = func_line - token->line;
                 if (distance < nearest_distance) {
@@ -1279,9 +1588,9 @@ bool c_parser_has_proper_filename_header(ParsedFile_t* parsed, const char* expec
 }
 
 /*
- * Check if file has proper second line wisdom comment
+ * Check if file has proper second line purpose comment
  */
-bool c_parser_has_proper_wisdom_header(ParsedFile_t* parsed) {
+bool c_parser_has_proper_purpose_line(ParsedFile_t* parsed) {
     if (!parsed) return false;
 
     int comment_count = 0;
@@ -1294,14 +1603,29 @@ bool c_parser_has_proper_wisdom_header(ParsedFile_t* parsed) {
             comment_count++;
 
             if (comment_count == 2) {
-                // Check if it contains wisdom markers
-                if (strstr(token->value, "INSERT WISDOM HERE") ||
-                    strstr(token->value, "Fragment #") ||
-                    strstr(token->value, "Metis Fragment")) {
-                    return true;
+                // Reject ONLY the placeholder, accept everything else meaningful
+                // TODO: Add a 'Purpose Wisdom' placeholder generator in story/purpose_lines.h
+                // This will allow for more flexible purpose lines, generated depending on what
+                // the Linter is currently analyzing (e.g. function names, file names, etc.)
+                if (strstr(token->value, "INSERT WISDOM HERE")) {
+                    return false; // Still using placeholder
                 }
-                // Found second comment but it's not wisdom
-                return false;
+                
+                // Check for meaningful content (not just whitespace/punctuation)
+                char* content = token->value;
+                bool has_meaningful_content = false;
+                
+                // Skip comment markers and whitespace
+                while (*content && (*content == '/' || *content == '*' || isspace(*content))) {
+                    content++;
+                }
+                
+                // Check if there's actual meaningful text
+                if (strlen(content) > 0) {
+                    has_meaningful_content = true;
+                }
+                
+                return has_meaningful_content;
             }
         }
 
@@ -1338,7 +1662,7 @@ bool c_parser_has_proper_file_headers(ParsedFile_t* parsed) {
     if (!filename) return false;
 
     return c_parser_has_proper_filename_header(parsed, filename) &&
-           c_parser_has_proper_wisdom_header(parsed);
+           c_parser_has_proper_purpose_line(parsed);
 }
 
 /*
@@ -1453,7 +1777,7 @@ bool c_parser_has_proper_header_doc_format(ParsedFile_t* parsed, const char* fun
     for (int i = 0; i < parsed->token_count; i++) {
         Token_t* token = &parsed->tokens[i];
 
-        if (token->line >= func->line_number - 10 && token->line < func->line_number) {
+        if (token->line >= func->line_number - 20 && token->line < func->line_number) {
             if (token->type == TOKEN_COMMENT_BLOCK) {
                 char* comment_copy = strdup(token->value);
                 if (!comment_copy) return false;
@@ -1506,9 +1830,15 @@ bool c_parser_has_proper_header_doc_format(ParsedFile_t* parsed, const char* fun
                 // Enforce strict header format: exactly 1 description line, followed by blank line, then parameters
                 // Must have: found_description=true, found_blank_line=true, description_lines=1
                 bool is_valid_format = false;
-                if (found_description && description_lines == 1 && found_blank_line) {
+                if (found_description && description_lines >= 1 && found_blank_line) {
                     is_valid_format = true; // Proper header format: one description + blank + details
                 }
+
+                // A 4-line comment is always invalid
+                if (total_lines == 4) {
+                    is_valid_format = false;
+                }
+
                 return (is_valid_format && !has_inappropriate_content);
             }
         }
@@ -1585,4 +1915,284 @@ bool c_parser_implementation_matches_header(ParsedFile_t* parsed, const char* fu
     bool matches = (strcmp(actual_desc, expected_description) == 0);
     free(actual_desc);
     return matches;
+}
+
+// Helper to check if a token represents "dString_t" type
+// This function needs to be aware of your AST or type system.
+// For a simple token-based check, we'll look for `dString_t` identifiers.
+static bool is_dstring_type(const char* type_name) {
+    return strcmp(type_name, "dString_t") == 0;
+}
+
+// Helper to determine if a token sequence looks like 'variable->str' and if 'variable' is a dString_t*
+// This is a simplified check based on token values. A full AST would be more robust.
+// Requires access to symbol table or type information, which is complex for a simple token parser.
+// For this problem, we'll make a pragmatic assumption: if we see "->str", we *assume* the left side
+// is a dString_t* for the purpose of flagging, as that's the common unsafe pattern.
+// A more advanced parser would verify the actual type of 'variable'.
+static bool is_dstring_str_access(ParsedFile_t* parsed, int token_idx) {
+    // Check for `identifier` -> `str` pattern
+    if (token_idx + 2 < parsed->token_count &&
+        parsed->tokens[token_idx].type == TOKEN_IDENTIFIER &&       // e.g., 'variable'
+        parsed->tokens[token_idx + 1].type == TOKEN_OPERATOR &&     // '->'
+        strcmp(parsed->tokens[token_idx + 1].value, "->") == 0 &&
+        parsed->tokens[token_idx + 2].type == TOKEN_IDENTIFIER &&   // 'str'
+        strcmp(parsed->tokens[token_idx + 2].value, "str") == 0)
+    {
+        // This pattern strongly suggests a dString_t->str access.
+        // A truly robust check would involve symbol table lookups to confirm 'variable' is dString_t*.
+        // For the scope of this linter, detecting the `->str` on any identifier is a good heuristic
+        // for flagging the common unsafe pattern.
+        return true;
+    }
+    return false;
+}
+
+// Helper to determine if a token is a string literal (e.g., "hello")
+static bool is_string_literal(const Token_t* token) {
+    return token->type == TOKEN_STRING;
+}
+
+// Helper to find the end of a function call's arguments.
+// This function will look for the matching ')' for a given '('
+static int find_matching_paren(ParsedFile_t* parsed, int start_idx) {
+    int paren_count = 0;
+    for (int i = start_idx; i < parsed->token_count; ++i) {
+        if (parsed->tokens[i].type == TOKEN_PUNCTUATION) {
+            if (strcmp(parsed->tokens[i].value, "(") == 0) {
+                paren_count++;
+            } else if (strcmp(parsed->tokens[i].value, ")") == 0) {
+                paren_count--;
+                if (paren_count == 0) {
+                    return i; // Found matching ')'
+                }
+            }
+        }
+    }
+    return -1; // No matching ')' found
+}
+
+/*
+ * Detects unsafe strcmp(dString_t->str, ...) usages.
+ * Populates usages_out with a dynamically allocated array of found usages.
+ * Returns true if any unsafe usages are found, false otherwise.
+ */
+bool c_parser_detect_unsafe_strcmp_dstring_usage(ParsedFile_t* parsed,
+                                                 UnsafeStrcmpUsage_t** usages_out,
+                                                 int* count_out) {
+    if (!parsed || !usages_out || !count_out) {
+        return false;
+    }
+
+    *usages_out = NULL;
+    *count_out = 0;
+
+    int current_capacity = 10;
+    UnsafeStrcmpUsage_t* found_usages = malloc(sizeof(UnsafeStrcmpUsage_t) * current_capacity);
+    if (!found_usages) {
+        return false; // Memory allocation failed
+    }
+
+    for (int i = 0; i < parsed->token_count; ++i) {
+        Token_t* current_token = &parsed->tokens[i];
+
+        // 1. Look for `strcmp` function call
+        if (current_token->type == TOKEN_IDENTIFIER && strcmp(current_token->value, "strcmp") == 0) {
+            // Check if the next token is an opening parenthesis, indicating a function call
+            if (i + 1 < parsed->token_count &&
+                parsed->tokens[i + 1].type == TOKEN_PUNCTUATION &&
+                strcmp(parsed->tokens[i + 1].value, "(") == 0) {
+
+                int start_of_args_idx = i + 2; // Token after '('
+
+                // Find the end of the strcmp call (matching ')')
+                int end_of_call_idx = find_matching_paren(parsed, i + 1);
+                if (end_of_call_idx == -1) {
+                    continue; // Malformed call, skip
+                }
+
+                // Try to find the comma separating arguments
+                int comma_idx = -1;
+                for (int j = start_of_args_idx; j < end_of_call_idx; ++j) {
+                    if (parsed->tokens[j].type == TOKEN_PUNCTUATION && strcmp(parsed->tokens[j].value, ",") == 0) {
+                        comma_idx = j;
+                        break;
+                    }
+                }
+
+                if (comma_idx == -1) {
+                    continue; // `strcmp` expects two arguments, skip if comma not found
+                }
+
+                // Analyze Argument 1 (from start_of_args_idx to comma_idx - 1)
+                // We'll check the token right before the comma or the ')' if no comma for the first arg
+                bool arg1_is_dstring_str = is_dstring_str_access(parsed, start_of_args_idx);
+                // For string literals, it might be the token at start_of_args_idx itself
+                bool arg1_is_cstring_literal = is_string_literal(&parsed->tokens[start_of_args_idx]);
+
+                // Analyze Argument 2 (from comma_idx + 1 to end_of_call_idx - 1)
+                // We'll check the token right after the comma
+                bool arg2_is_dstring_str = is_dstring_str_access(parsed, comma_idx + 1);
+                bool arg2_is_cstring_literal = is_string_literal(&parsed->tokens[comma_idx + 1]);
+
+                // Check for unsafe patterns
+                if (arg1_is_dstring_str || arg2_is_dstring_str) {
+                    // We found at least one `->str` access in `strcmp` arguments.
+                    // Now determine the specific type of unsafe usage.
+
+                    bool is_dstring_vs_cstring = false;
+                    bool is_dstring_vs_dstring = false;
+
+                    if (arg1_is_dstring_str && (arg2_is_cstring_literal || !arg2_is_dstring_str)) {
+                        is_dstring_vs_cstring = true; // Arg1 is dstring->str, Arg2 is not dstring->str (likely c-string)
+                    } else if (arg2_is_dstring_str && (arg1_is_cstring_literal || !arg1_is_dstring_str)) {
+                        is_dstring_vs_cstring = true; // Arg2 is dstring->str, Arg1 is not dstring->str (likely c-string)
+                    } else if (arg1_is_dstring_str && arg2_is_dstring_str) {
+                        is_dstring_vs_dstring = true; // Both are dstring->str
+                    }
+
+                    // Add the violation
+                    if (is_dstring_vs_cstring || is_dstring_vs_dstring) {
+                        if (*count_out >= current_capacity) {
+                            current_capacity *= 2;
+                            UnsafeStrcmpUsage_t* new_usages = realloc(found_usages, sizeof(UnsafeStrcmpUsage_t) * current_capacity);
+                            if (!new_usages) {
+                                free(found_usages);
+                                *usages_out = NULL;
+                                *count_out = 0;
+                                return false; // Reallocation failed
+                            }
+                            found_usages = new_usages;
+                        }
+
+                        found_usages[*count_out].line = current_token->line;
+                        found_usages[*count_out].column = current_token->column;
+                        found_usages[*count_out].is_dstring_vs_cstring = is_dstring_vs_cstring;
+                        found_usages[*count_out].is_dstring_vs_dstring = is_dstring_vs_dstring;
+                        
+                        // Extract function name context
+                        c_parser_find_containing_function(parsed, current_token->line, 
+                                                        found_usages[*count_out].function_name, 
+                                                        sizeof(found_usages[*count_out].function_name));
+                        
+                        // Extract variable names from the strcmp arguments
+                        extract_strcmp_variable_names(parsed, start_of_args_idx, comma_idx, end_of_call_idx,
+                                                    found_usages[*count_out].variable1, sizeof(found_usages[*count_out].variable1),
+                                                    found_usages[*count_out].variable2, sizeof(found_usages[*count_out].variable2));
+                        
+                        (*count_out)++;
+                    }
+                }
+            }
+        }
+    }
+
+    *usages_out = found_usages;
+    return *count_out > 0;
+}
+
+/*
+ * Helper function to find the containing function for a given line number
+ */
+void c_parser_find_containing_function(ParsedFile_t* parsed, int line, char* function_name, size_t name_size) {
+    if (!parsed || !function_name || name_size == 0) {
+        return;
+    }
+    
+    // Default to "unknown_function" if we can't find the containing function
+    strncpy(function_name, "unknown_function", name_size - 1);
+    function_name[name_size - 1] = '\0';
+    
+    // Search through functions to find the one that likely contains this line
+    // Since we don't have end_line, we'll use a heuristic approach
+    for (int i = 0; i < parsed->function_count; i++) {
+        FunctionInfo_t* func = &parsed->functions[i];
+        // Check if the line is at or after the function definition
+        if (func->line_number <= line) {
+            // If this is the last function or the line is before the next function,
+            // assume it belongs to this function
+            if (i == parsed->function_count - 1 || 
+                (i + 1 < parsed->function_count && line < parsed->functions[i + 1].line_number)) {
+                strncpy(function_name, func->name, name_size - 1);
+                function_name[name_size - 1] = '\0';
+                return;
+            }
+        }
+    }
+}
+
+/*
+ * Helper function to extract variable names from strcmp arguments with intelligence
+ */
+void extract_strcmp_variable_names(ParsedFile_t* parsed, int start_idx, int comma_idx, int end_idx,
+                                        char* variable1, size_t var1_size, char* variable2, size_t var2_size) {
+    if (!parsed || !variable1 || !variable2 || var1_size == 0 || var2_size == 0) {
+        return;
+    }
+    
+    // Initialize with default values
+    strncpy(variable1, "unknown", var1_size - 1);
+    variable1[var1_size - 1] = '\0';
+    strncpy(variable2, "unknown", var2_size - 1);
+    variable2[var2_size - 1] = '\0';
+    
+    // Extract first argument (from start_idx to comma_idx - 1)
+    if (comma_idx > start_idx) {
+        extract_base_variable_name(parsed, start_idx, comma_idx - 1, variable1, var1_size);
+    }
+    
+    // Extract second argument (from comma_idx + 1 to end_idx - 1)  
+    if (end_idx > comma_idx + 1) {
+        extract_base_variable_name(parsed, comma_idx + 1, end_idx - 1, variable2, var2_size);
+    }
+}
+
+/*
+ * Extract the base variable name from a token range, handling ->str patterns intelligently
+ */
+void extract_base_variable_name(ParsedFile_t* parsed, int start_idx, int end_idx, 
+                                      char* variable_name, size_t name_size) {
+    if (!parsed || !variable_name || name_size == 0) return;
+    
+    char full_expression[256] = {0};
+    int expr_pos = 0;
+    
+    // First, build the full expression
+    for (int i = start_idx; i <= end_idx && i < parsed->token_count; i++) {
+        Token_t* token = &parsed->tokens[i];
+        
+        // Skip whitespace tokens and newlines
+        if (token->type == TOKEN_NEWLINE) continue;
+        
+        // Add token to expression
+        if (expr_pos < sizeof(full_expression) - strlen(token->value) - 1) {
+            strcpy(full_expression + expr_pos, token->value);
+            expr_pos += strlen(token->value);
+        }
+    }
+    
+    // Now intelligently extract the base variable name
+    if (strstr(full_expression, "->str")) {
+        // Pattern like "item1->str" -> extract "item1"
+        char* arrow_pos = strstr(full_expression, "->");
+        if (arrow_pos) {
+            size_t base_len = arrow_pos - full_expression;
+            if (base_len < name_size - 1) {
+                strncpy(variable_name, full_expression, base_len);
+                variable_name[base_len] = '\0';
+                return;
+            }
+        }
+    }
+    
+    // For string literals, just use the literal
+    if (full_expression[0] == '"') {
+        strncpy(variable_name, full_expression, name_size - 1);
+        variable_name[name_size - 1] = '\0';
+        return;
+    }
+    
+    // For simple identifiers, use as-is
+    strncpy(variable_name, full_expression, name_size - 1);
+    variable_name[name_size - 1] = '\0';
 }

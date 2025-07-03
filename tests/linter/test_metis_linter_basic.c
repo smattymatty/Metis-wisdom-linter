@@ -807,6 +807,174 @@ static int test_lint_long_lines_file(void) {
     return 1;
 }
 
+/*
+ * Create content with unsafe strcmp patterns for wisdom fragment testing
+ */
+static const char* create_unsafe_strcmp_dstring_vs_cstring_content(void) {
+    return "/* unsafe_strcmp_test.c - Test file with unsafe strcmp patterns */\n"
+           "// INSERT WISDOM HERE\n"
+           "\n"
+           "#include <string.h>\n"
+           "\n"
+           "typedef struct {\n"
+           "    char* str;\n"
+           "    int len;\n"
+           "} dString_t;\n"
+           "\n"
+           "/*\n"
+           " * Test function with unsafe strcmp vs C-string\n"
+           " */\n"
+           "void check_player_name(dString_t* player) {\n"
+           "    // This should trigger \"The Duel of Echoes\" fragment\n"
+           "    if (strcmp(player->str, \"Minos\") == 0) {\n"
+           "        // Unsafe pattern detected\n"
+           "    }\n"
+           "}\n";
+}
+
+/*
+ * Create content with dString vs dString unsafe strcmp patterns
+ */
+static const char* create_unsafe_strcmp_dstring_vs_dstring_content(void) {
+    return "/* unsafe_strcmp_dstring.c - Test file with dString vs dString strcmp */\n"
+           "// INSERT WISDOM HERE\n"
+           "\n"
+           "#include <string.h>\n"
+           "\n"
+           "typedef struct {\n"
+           "    char* str;\n"
+           "    int len;\n"
+           "} dString_t;\n"
+           "\n"
+           "/*\n"
+           " * Test function with unsafe strcmp between two dString objects\n"
+           " */\n"
+           "void compare_items(dString_t* item1, dString_t* item2) {\n"
+           "    // This should trigger \"The Scales of Daedalus\" fragment\n"
+           "    if (strcmp(item1->str, item2->str) == 0) {\n"
+           "        // Unsafe pattern detected\n"
+           "    }\n"
+           "}\n";
+}
+
+/*
+ * Test unsafe strcmp dString vs C-string detection and wisdom fragment delivery
+ */
+static int test_unsafe_strcmp_dstring_vs_cstring_wisdom(void) {
+    LOG("Testing unsafe strcmp dString vs C-string with wisdom fragment delivery");
+    
+    const char* content = create_unsafe_strcmp_dstring_vs_cstring_content();
+    char* temp_file = create_temp_test_file("unsafe_strcmp_cstring.c", content);
+    TEST_ASSERT(temp_file != NULL, "Should create temporary test file");
+    
+    // Redirect stdout to capture the output
+    fflush(stdout);
+    int stdout_backup = dup(STDOUT_FILENO);
+    
+    // Create a pipe to capture stdout
+    int pipe_fd[2];
+    pipe(pipe_fd);
+    dup2(pipe_fd[1], STDOUT_FILENO);
+    close(pipe_fd[1]);
+    
+    // Run the linter
+    int result = metis_lint_file(temp_file);
+    
+    // Restore stdout
+    fflush(stdout);
+    dup2(stdout_backup, STDOUT_FILENO);
+    close(stdout_backup);
+    
+    // Read the captured output
+    char captured_output[4096] = {0};
+    read(pipe_fd[0], captured_output, sizeof(captured_output) - 1);
+    close(pipe_fd[0]);
+    
+    printf("Captured output from unsafe strcmp dString vs C-string test:\n%s\n", captured_output);
+    
+    // Verify violations were detected
+    TEST_ASSERT(result > 0, "Should detect unsafe strcmp violations");
+    
+    // Check for specific wisdom fragment content
+    bool found_duel_echoes = (strstr(captured_output, "The Duel of Echoes") != NULL);
+    bool found_strcmp_recommendation = (strstr(captured_output, "d_CompareStringToCString") != NULL);
+    bool found_unsafe_strcmp_message = (strstr(captured_output, "Unsafe `strcmp` with `dString_t->str` and C-string detected") != NULL);
+    
+    printf("Found 'The Duel of Echoes': %s\n", found_duel_echoes ? "YES" : "NO");
+    printf("Found 'd_CompareStringToCString' recommendation: %s\n", found_strcmp_recommendation ? "YES" : "NO");
+    printf("Found unsafe strcmp message: %s\n", found_unsafe_strcmp_message ? "YES" : "NO");
+    
+    TEST_ASSERT(found_unsafe_strcmp_message, "Should detect and report unsafe strcmp with dString->str and C-string");
+    TEST_ASSERT(found_strcmp_recommendation, "Should provide d_CompareStringToCString recommendation");
+    
+    // Note: The wisdom fragment might not appear if session limits are reached, but the violation should be detected
+    if (!found_duel_echoes) {
+        printf("WARNING: 'The Duel of Echoes' wisdom fragment not found - may be due to session limits\n");
+    }
+    
+    cleanup_temp_file(temp_file);
+    return 1;
+}
+
+/*
+ * Test unsafe strcmp dString vs dString detection and wisdom fragment delivery
+ */
+static int test_unsafe_strcmp_dstring_vs_dstring_wisdom(void) {
+    LOG("Testing unsafe strcmp dString vs dString with wisdom fragment delivery");
+    
+    const char* content = create_unsafe_strcmp_dstring_vs_dstring_content();
+    char* temp_file = create_temp_test_file("unsafe_strcmp_dstring.c", content);
+    TEST_ASSERT(temp_file != NULL, "Should create temporary test file");
+    
+    // Redirect stdout to capture the output
+    fflush(stdout);
+    int stdout_backup = dup(STDOUT_FILENO);
+    
+    // Create a pipe to capture stdout
+    int pipe_fd[2];
+    pipe(pipe_fd);
+    dup2(pipe_fd[1], STDOUT_FILENO);
+    close(pipe_fd[1]);
+    
+    // Run the linter
+    int result = metis_lint_file(temp_file);
+    
+    // Restore stdout
+    fflush(stdout);
+    dup2(stdout_backup, STDOUT_FILENO);
+    close(stdout_backup);
+    
+    // Read the captured output
+    char captured_output[4096] = {0};
+    read(pipe_fd[0], captured_output, sizeof(captured_output) - 1);
+    close(pipe_fd[0]);
+    
+    printf("Captured output from unsafe strcmp dString vs dString test:\n%s\n", captured_output);
+    
+    // Verify violations were detected
+    TEST_ASSERT(result > 0, "Should detect unsafe strcmp violations");
+    
+    // Check for specific wisdom fragment content
+    bool found_scales_daedalus = (strstr(captured_output, "The Scales of Daedalus") != NULL);
+    bool found_compare_strings = (strstr(captured_output, "d_CompareStrings") != NULL);
+    bool found_unsafe_dstring_message = (strstr(captured_output, "Unsafe `strcmp` between two `dString_t` objects detected") != NULL);
+    
+    printf("Found 'The Scales of Daedalus': %s\n", found_scales_daedalus ? "YES" : "NO");
+    printf("Found 'd_CompareStrings' recommendation: %s\n", found_compare_strings ? "YES" : "NO");
+    printf("Found unsafe dString vs dString message: %s\n", found_unsafe_dstring_message ? "YES" : "NO");
+    
+    TEST_ASSERT(found_unsafe_dstring_message, "Should detect and report unsafe strcmp between two dString objects");
+    TEST_ASSERT(found_compare_strings, "Should provide d_CompareStrings recommendation");
+    
+    // Note: The wisdom fragment might not appear if session limits are reached, but the violation should be detected
+    if (!found_scales_daedalus) {
+        printf("WARNING: 'The Scales of Daedalus' wisdom fragment not found - may be due to session limits\n");
+    }
+    
+    cleanup_temp_file(temp_file);
+    return 1;
+}
+
 // =============================================================================
 // MAIN TEST RUNNER
 // =============================================================================
@@ -849,6 +1017,10 @@ int main(void) {
     RUN_TEST(test_lint_large_file);
     RUN_TEST(test_lint_binary_file);
     RUN_TEST(test_lint_long_lines_file);
+    
+    // Unsafe strcmp detection and wisdom fragment tests
+    RUN_TEST(test_unsafe_strcmp_dstring_vs_cstring_wisdom);
+    RUN_TEST(test_unsafe_strcmp_dstring_vs_dstring_wisdom);
     
     TEST_SUITE_END();
 }

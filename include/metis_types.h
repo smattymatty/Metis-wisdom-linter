@@ -136,6 +136,17 @@ typedef struct {
     size_t total_fragments;  /**< Total number of wisdom fragments */
 } MetisWisdomProgress;
 
+/**
+ * @brief Placeholder for Daedalus String Type
+ * This is a simplified representation for linting purposes.
+ * The actual definition would be in a Daedalus library header.
+ */
+typedef struct dString_t {
+    char* str;      /**< Null-terminated string buffer */
+    size_t length;  /**< Current length of the string */
+    size_t capacity; /**< Allocated capacity of the buffer */
+} dString_t;
+
 #ifdef __cplusplus
 }
 #endif
